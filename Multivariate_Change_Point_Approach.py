@@ -177,7 +177,7 @@ def Calculate_Multivariate_Change_Point(full_data, lim = 0.2417572721771737):
     return result_df
 
 
-def simulate_and_plot_change_detection(run, n, shift, lim = 0.3697572721771737): # Lim 100 = 1.2514957122952044, lim 200 = 1.6157644052891473
+def simulate_and_plot_change_detection(run, n, shift, lim = 0.3323365842740532): # Lim 100 = 1.2514957122952044, lim 200 = 1.6157644052891473
     #1.3549676671757231
     
     data, cov = Load_Data(32) # Ensure Load_Data uses a matrix of observations as input
@@ -185,7 +185,7 @@ def simulate_and_plot_change_detection(run, n, shift, lim = 0.3697572721771737):
     
     
 
-    initial_data = apply_mean_shift(generate_random_data(), shift)
+    # initial_data = apply_mean_shift(generate_random_data(), shift)
    
     # import random
     # l = random.randint(1,96)
@@ -194,7 +194,7 @@ def simulate_and_plot_change_detection(run, n, shift, lim = 0.3697572721771737):
     # initial_data[res][20:] += 7*np.std(full_observation_vector)
         
     
-    full_data = initial_data.T
+    full_data = data_random.T
     
     result = Calculate_Multivariate_Change_Point(full_data, lim)
     

@@ -29,7 +29,7 @@ def get_Q_results(full_data, filepath, filename_Q, ARL_list_Q):
 
 
     # Apply Q chart
-    result_Q_chart = Q_Chart.Calculate_Q_Chart_UCL_LCL(full_data, 3.891)
+    result_Q_chart = Q_Chart.Calculate_Q_Chart_UCL_LCL(full_data, 3.87946)
 
     count = 0
 
@@ -37,76 +37,47 @@ def get_Q_results(full_data, filepath, filename_Q, ARL_list_Q):
     for key,value in result_Q_chart.items():
         count += value.T["States"].count("OOC")
   
-
+    # plt.plot(value.T["UCL"])
+    # plt.plot(value.T["LCL"])
+    # plt.plot(value.T["Observation"])
 
     # ARL_OOC
     ARL_list_Q.append(count)
     write_to_csv(result_Q_chart.T, filepath, filename_Q)
        
-    # plt.figure()
-    # plt.plot(result_Q_chart[res]['Observation'])
-    # plt.plot(result_Q_chart[res]['UCL'])
-    # plt.plot(result_Q_chart[res]['LCL'])
     
     return result_Q_chart
     
    
     
   
-def get_SSEWMA_results(cluster_data, full_data, filepath, filename_SSEWMA, ARL_list_SSEWMA, sim):
+def get_SSEWMA_results(cluster_data, full_data, filepath, filename_SSEWMA, ARL_list_SSEWMA):
 
-    process_readings = len(full_data)
-    
-    # keys = list(cluster_data[0].T.keys())
-       
-    # cluster_data[0].T[keys[0]][start_OOC:] += 5*np.std(cluster_data[0].T[keys[0]])
-      
+  
     # Apply SSMEWMA
-    result_SSEWMA = SSMEWMA.Calculate_SSEWMA_Norm_Lim(cluster_data, sim)
+    result_SSEWMA = SSMEWMA.Calculate_SSEWMA_Norm_Lim(cluster_data, 0)
     
-    
-    
-    
+
     count_SSEWMA = 0
 
-    print(result_SSEWMA.T['Num_OOC'])
     count_SSEWMA += np.sum(result_SSEWMA.T['Num_OOC'])
     
 
-
-
-    
     ARL_list_SSEWMA.append(count_SSEWMA)
     write_to_csv(result_SSEWMA.T, filepath, filename_SSEWMA)
-    
-    # for i in range(len(result_SSEWMA.T)):
-    #     plt.figure()
-    #     plt.plot(result_SSEWMA[i]['Norm'])
-    #     plt.plot(result_SSEWMA[i]['Limit'])
-    #     plt.title(f"{result_SSEWMA[i]['h']}")
-
-    
-    
-    # print(count_SSEWMA)
-    # print(result_SSEWMA[val2]['state'])
-    # # Check if everything is working correctly!
-    # plt.figure()
-    # plt.plot(result_SSEWMA[val2]['Norm'])
-    # plt.plot(result_SSEWMA[val2]['Limit'])
     
 
     return result_SSEWMA, count_SSEWMA
 
-def get_combined_results(count_combi, full_data, filepath, filename_Combi_Q, ARL_list_Combi, sim, clustered_data_DBSCAN, noise_clusters, filename_Combi_SSEWMA, res):
+def get_combined_results(count_combi, full_data, filepath, filename_Combi_Q, ARL_list_Combi, sim, clustered_data_DBSCAN, noise_clusters, filename_Combi_SSEWMA):
     # Initialize variables
     observations = len(full_data.T)
 
 
-       
     
     # Apply Q-chart to noise data and SSEWMA to cluster data
-    result_SSEWMA = SSMEWMA.Calculate_SSEWMA_Norm_Lim(clustered_data_DBSCAN, sim, 1)
-    result_Q_chart = Q_Chart.Calculate_Q_Chart_UCL_LCL(noise_clusters[-1], 3.991)
+    result_SSEWMA = SSMEWMA.Calculate_SSEWMA_Norm_Lim(clustered_data_DBSCAN, 1)
+    result_Q_chart = Q_Chart.Calculate_Q_Chart_UCL_LCL(noise_clusters[-1], 3.8899961800335774)
     
   
     
@@ -123,18 +94,10 @@ def get_combined_results(count_combi, full_data, filepath, filename_Combi_Q, ARL
             count_combi += 1
             print('Q')
             
-    # plt.figure()
-    # plt.plot(result_SSEWMA[0]['Norm'])
-    # plt.plot(result_SSEWMA[0]['Limit'])
-           
-           
-    # Write results to csv
-    write_to_csv(result_SSEWMA.T, filepath, filename_Combi_SSEWMA)
-    write_to_csv(result_Q_chart.T, filepath, filename_Combi_Q)
 
     return result_SSEWMA, result_Q_chart, count_combi
 
-def get_CP_results(full_data, filepath, filename_CP, ARL_list_CP, sim):
+def get_CP_results(full_data, filepath, filename_CP, ARL_list_CP):
 
     process_readings = len(full_data)
     
@@ -160,8 +123,9 @@ if __name__ == "__main__":
     
 
     run_length = 30
-    start_OOC = 20
-    runs = 150
+    runs = 500
+    sim = 6
+    DBSCAN_threshold = 0.85
     
 
     ARL_list_Combi = []
@@ -172,8 +136,7 @@ if __name__ == "__main__":
     
     
     
-    sim = 6
-    DBSCAN_threshold = 0.85
+    
     
     tot_noise_cluster_number = []
     tot_total_cluster_list = []
@@ -181,14 +144,14 @@ if __name__ == "__main__":
     
     data_real, cov = Load_Data(32)
     
-    for run in range(1, runs+1, 1):
+    for run in range(0, runs+1, 1):
         filepath = r"C:\Users\tbeene\Desktop\Simulation\Full_Simulation\Full_Simulation_IC"
         filename_SSEWMA = f"run_SSEWMA_{run}_IC.csv"
         filename_CP = f"run_CP_{run}_IC.csv"
         filename_Q = f"run_Q_{run}_IC.csv"
         filename_Combi_Q = f"run_Combined_{run}_IC_Q.csv"
         filename_Combi_SSEWMA = f"run_Combined_{run}_IC_SSEWMA.csv"
-        filename_results = f"run_results_IC.csv"
+        filename_results = f"global_results_IC.csv"
         print(f"Simulation percentage complete: ", 100*(run/runs))
   
         
@@ -198,41 +161,29 @@ if __name__ == "__main__":
         # Generate a random process reading for OOC
         full_data = Generate_SPC_MEZCAL_Data_V1.generate_multivariate_data(cov, data_real, run_length)
         
-        count_combi = 0
+        
         cluster_data_SSEWMA = apply_fixed_clustering(full_data, sim, data_real)
       
         
-        
-        
-        
-        val = random.randint(1, len(full_data) - 1)
-        res = list(full_data.T.keys())[val]
+ 
         result_Q_chart = get_Q_results(full_data.copy(), filepath, filename_Q, ARL_list_Q)
-        result_SSEWMA, count_SSEWMA = get_SSEWMA_results(cluster_data_SSEWMA.copy(), full_data.copy(), filepath, filename_SSEWMA, ARL_list_SSEWMA, sim)
-        # results_CP = get_CP_results(full_data.copy(), filepath, filename_CP, ARL_list_CP, sim)
-        # clustered_data_DBSCAN, cluster_data_noise, noise_cluster_number, total_cluster, biggest_cluster = apply_DBSCAN(full_data.T, DBSCAN_threshold, full_data)
-        # results_SSEWMA, result_Q_chart, count_combi = get_combined_results(count_combi, full_data, filepath, filename_Combi_Q, ARL_list_Combi, sim, clustered_data_DBSCAN, cluster_data_noise, filename_Combi_SSEWMA, res)
+        result_SSEWMA, count_SSEWMA = get_SSEWMA_results(cluster_data_SSEWMA.copy(), full_data.copy(), filepath, filename_SSEWMA, ARL_list_SSEWMA)
+        results_CP = get_CP_results(full_data.copy(), filepath, filename_CP, ARL_list_CP)
         
            
         
         
         
-        
+        count_combi = 0
         for current_run_length in range(2,run_length,1):
 
-            print(count_combi)
-            full_data1 = full_data.copy().iloc[:,:current_run_length]
+            current_data = full_data.copy().iloc[:,:current_run_length]
     
           
-            clustered_data_DBSCAN, cluster_data_noise, noise_cluster_number, total_cluster, biggest_cluster = apply_DBSCAN(full_data1.T, DBSCAN_threshold, full_data)
-            results_SSEWMA, result_Q_chart, count_combi = get_combined_results(count_combi, full_data1, filepath, filename_Combi_Q, ARL_list_Combi, sim, clustered_data_DBSCAN, cluster_data_noise, filename_Combi_SSEWMA, res)
+            clustered_data_DBSCAN, cluster_data_noise, noise_cluster_number, total_cluster, biggest_cluster = apply_DBSCAN(current_data.T, DBSCAN_threshold, full_data)
+            result_SSEWMA, result_Q_chart, count_combi = get_combined_results(count_combi, current_data, filepath, filename_Combi_Q, ARL_list_Combi, sim, clustered_data_DBSCAN, cluster_data_noise, filename_Combi_SSEWMA)
             
            
-       
-            
-       
-    
-
             tot_noise_cluster_number.append(noise_cluster_number)
             tot_total_cluster_list.append(total_cluster)
             tot_biggest_cluster_list.append(biggest_cluster)
@@ -240,6 +191,9 @@ if __name__ == "__main__":
   
         # ARL_OOC
         ARL_list_Combi.append(count_combi)
+        # # Write results to csv for combination chart
+        # write_to_csv(result_SSEWMA.T, filepath, filename_Combi_SSEWMA)
+        # write_to_csv(result_Q_chart.T, filepath, filename_Combi_Q)
         
       
     process_readings = len(full_data)
