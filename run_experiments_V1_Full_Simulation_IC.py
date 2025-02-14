@@ -29,7 +29,7 @@ def get_Q_results(full_data, filepath, filename_Q, ARL_list_Q):
 
 
     # Apply Q chart
-    result_Q_chart = Q_Chart.Calculate_Q_Chart_UCL_LCL(full_data, 3.87946)
+    result_Q_chart = Q_Chart.Calculate_Q_Chart_UCL_LCL(full_data)
 
     count = 0
 
@@ -69,7 +69,7 @@ def get_SSEWMA_results(cluster_data, full_data, filepath, filename_SSEWMA, ARL_l
 
     return result_SSEWMA, count_SSEWMA
 
-def get_combined_results(count_combi, full_data, filepath, filename_Combi_Q, ARL_list_Combi, sim, clustered_data_DBSCAN, noise_clusters, filename_Combi_SSEWMA):
+def get_combined_results(count_combi, full_data, filepath, filename_Combi_Q, ARL_list_Combi, sim, clustered_data_DBSCAN, noise_clusters, filename_Combi_SSEWMA, count_Q_com, count_SSEWMA_com):
     # Initialize variables
     observations = len(full_data.T)
 
@@ -77,7 +77,10 @@ def get_combined_results(count_combi, full_data, filepath, filename_Combi_Q, ARL
     
     # Apply Q-chart to noise data and SSEWMA to cluster data
     result_SSEWMA = SSMEWMA.Calculate_SSEWMA_Norm_Lim(clustered_data_DBSCAN, 1)
-    result_Q_chart = Q_Chart.Calculate_Q_Chart_UCL_LCL(noise_clusters[-1], 3.8899961800335774)
+    if noise_clusters[-1].empty == False:
+        result_Q_chart = Q_Chart.Calculate_Q_Chart_UCL_LCL(noise_clusters[-1])
+    else:
+        result_Q_chart = pd.DataFrame()
     
   
     
@@ -86,6 +89,8 @@ def get_combined_results(count_combi, full_data, filepath, filename_Combi_Q, ARL
 
         if cluster['state'][-1] == 'OOC':
             count_combi += 1
+            print('SSEWMA')
+            count_SSEWMA_com += 1
  
         
     for key, value in result_Q_chart.items():
@@ -93,6 +98,7 @@ def get_combined_results(count_combi, full_data, filepath, filename_Combi_Q, ARL
         if value["States"][-1] == "OOC":
             count_combi += 1
             print('Q')
+            count_Q_com += 1
             
 
     return result_SSEWMA, result_Q_chart, count_combi
@@ -106,7 +112,6 @@ def get_CP_results(full_data, filepath, filename_CP, ARL_list_CP):
     result_CP = Multivariate_Change_Point_Approach.Calculate_Multivariate_Change_Point(full_data)
 
     count_CP = 0
-    
     
     count_CP += list(result_CP['state']).count('OOC')
     
@@ -123,7 +128,7 @@ if __name__ == "__main__":
     
 
     run_length = 30
-    runs = 500
+    runs = 100
     sim = 6
     DBSCAN_threshold = 0.85
     
@@ -144,7 +149,10 @@ if __name__ == "__main__":
     
     data_real, cov = Load_Data(32)
     
-    for run in range(0, runs+1, 1):
+    count_Q_com = 0
+    count_SSEWMA_com = 0
+    
+    for run in range(0, runs, 1):
         filepath = r"C:\Users\tbeene\Desktop\Simulation\Full_Simulation\Full_Simulation_IC"
         filename_SSEWMA = f"run_SSEWMA_{run}_IC.csv"
         filename_CP = f"run_CP_{run}_IC.csv"
@@ -168,7 +176,7 @@ if __name__ == "__main__":
  
         result_Q_chart = get_Q_results(full_data.copy(), filepath, filename_Q, ARL_list_Q)
         result_SSEWMA, count_SSEWMA = get_SSEWMA_results(cluster_data_SSEWMA.copy(), full_data.copy(), filepath, filename_SSEWMA, ARL_list_SSEWMA)
-        results_CP = get_CP_results(full_data.copy(), filepath, filename_CP, ARL_list_CP)
+        # results_CP = get_CP_results(full_data.copy(), filepath, filename_CP, ARL_list_CP)
         
            
         
@@ -177,11 +185,11 @@ if __name__ == "__main__":
         count_combi = 0
         for current_run_length in range(2,run_length,1):
 
-            current_data = full_data.copy().iloc[:,:current_run_length]
+            current_data = full_data.copy().iloc[:,:current_run_length+1]
     
           
             clustered_data_DBSCAN, cluster_data_noise, noise_cluster_number, total_cluster, biggest_cluster = apply_DBSCAN(current_data.T, DBSCAN_threshold, full_data)
-            result_SSEWMA, result_Q_chart, count_combi = get_combined_results(count_combi, current_data, filepath, filename_Combi_Q, ARL_list_Combi, sim, clustered_data_DBSCAN, cluster_data_noise, filename_Combi_SSEWMA)
+            result_SSEWMA, result_Q_chart, count_combi = get_combined_results(count_combi, current_data, filepath, filename_Combi_Q, ARL_list_Combi, sim, clustered_data_DBSCAN, cluster_data_noise, filename_Combi_SSEWMA, count_Q_com, count_SSEWMA_com)
             
            
             tot_noise_cluster_number.append(noise_cluster_number)
@@ -189,7 +197,7 @@ if __name__ == "__main__":
             tot_biggest_cluster_list.append(biggest_cluster)
             
   
-        # ARL_OOC
+        # # ARL_OOC
         ARL_list_Combi.append(count_combi)
         # # Write results to csv for combination chart
         # write_to_csv(result_SSEWMA.T, filepath, filename_Combi_SSEWMA)
@@ -212,7 +220,8 @@ if __name__ == "__main__":
     
            
             
-    
+print(count_Q_com)
+print(count_SSEWMA_com)  
     
      
 results_overal_df = pd.DataFrame()

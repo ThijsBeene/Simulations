@@ -2,7 +2,7 @@ from scipy.special import stdtrit # Inverse cdf of student t
 from scipy import stats
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
+from scipy.stats import norm
 
 def calc_dist_values(N, k):
     """This function calculates the statistics for the Q-chart."""
@@ -28,9 +28,18 @@ def Check_State(current_observation, UCL, LCL):
         return "OOC"
     return "IC"
 
-def Calculate_Q_Chart_UCL_LCL(full_data, k):
+def Calculate_Q_Chart_UCL_LCL(full_data):
     """Computes the Q-chart UCL, LCL, and states for the data."""
     result_df = pd.DataFrame()
+    p = len(full_data)
+    
+    # Calculate what k value to use to get an ARL_IC of 50
+    if p == 96:
+        p_IC = ((1-(1-(1/50))**(1/p)))
+        k = norm.ppf(1-(p_IC/2))
+    else:
+        p_IC = ((1-(1-(1/100))**(1/p)))
+        k = norm.ppf(1-(p_IC/2))
 
     for key, value in full_data.T.items():
         UCL_list, LCL_list, state_list, include_list = [], [], [], []
