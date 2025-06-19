@@ -21,21 +21,26 @@ from Generate_SPC_MEZCAL_Data_V1 import generate_multivariate_data
 from Generate_SPC_MEZCAL_Data_V1 import apply_fixed_clustering
 from Generate_SPC_MEZCAL_Data_V1 import apply_DBSCAN
 import math
+import scienceplots
 
 def write_to_csv(data, filepath, filename):
     data.to_csv(filepath + '/' + filename, sep=',', index=True, encoding='utf-8')
 
-def get_Q_results(full_data, filepath, filename_Q, ARL_list_Q):
+def get_Q_results(full_data, filepath, filename_Q, ARL_list_Q, alpha):
 
 
     # Apply Q chart
-    result_Q_chart = Q_Chart.Calculate_Q_Chart_UCL_LCL(full_data)
+    result_Q_chart = Q_Chart.Calculate_Q_Chart_UCL_LCL(full_data, alpha)
 
-    count = 0
+    count = np.inf
 
 
     for key,value in result_Q_chart.items():
-        count += value.T["States"].count("OOC")
+        for index,state in enumerate(value.T["States"]):
+            if state == 'OOC':
+                if index < count:
+                    count = index 
+               
   
     # plt.plot(value.T["UCL"])
     # plt.plot(value.T["LCL"])
@@ -51,25 +56,36 @@ def get_Q_results(full_data, filepath, filename_Q, ARL_list_Q):
    
     
   
-def get_SSEWMA_results(cluster_data, full_data, filepath, filename_SSEWMA, ARL_list_SSEWMA):
+def get_SSEWMA_results(cluster_data, full_data, filepath, filename_SSEWMA, ARL_list_SSEWMA, h):
 
   
     # Apply SSMEWMA
-    result_SSEWMA = SSMEWMA.Calculate_SSEWMA_Norm_Lim(cluster_data, 0)
+    result_SSEWMA = SSMEWMA.Calculate_SSEWMA_Norm_Lim(cluster_data, h)
     
 
-    count_SSEWMA = 0
+    count_SSEWMA = np.inf
+    
+    for key,value in result_SSEWMA.items():
+        for index,state in enumerate(value.T["state"]):
+            if state == 'OOC':
+                if index < count_SSEWMA:
+                    count_SSEWMA = index
+        
+                
 
-    count_SSEWMA += np.sum(result_SSEWMA.T['Num_OOC'])
+    
     
 
     ARL_list_SSEWMA.append(count_SSEWMA)
     write_to_csv(result_SSEWMA.T, filepath, filename_SSEWMA)
     
+    
+    
+    
 
     return result_SSEWMA, count_SSEWMA
 
-def get_combined_results(count_combi, full_data, filepath, filename_Combi_Q, ARL_list_Combi, sim, clustered_data_DBSCAN, noise_clusters, filename_Combi_SSEWMA, count_Q_com, count_SSEWMA_com):
+def get_combined_results(count_combi, count_combi_Q, full_data, filepath, filename_Combi_Q, ARL_list_Combi, sim, clustered_data_DBSCAN, noise_clusters, filename_Combi_SSEWMA, count_Q_com, count_SSEWMA_com):
     # Initialize variables
     observations = len(full_data.T)
 
@@ -77,29 +93,32 @@ def get_combined_results(count_combi, full_data, filepath, filename_Combi_Q, ARL
     
     # Apply Q-chart to noise data and SSEWMA to cluster data
     result_SSEWMA = SSMEWMA.Calculate_SSEWMA_Norm_Lim(clustered_data_DBSCAN, 1)
+
     if noise_clusters[-1].empty == False:
-        result_Q_chart = Q_Chart.Calculate_Q_Chart_UCL_LCL(noise_clusters[-1])
+        result_Q_chart = Q_Chart.Calculate_Q_Chart_UCL_LCL(noise_clusters[-1], 1)
     else:
         result_Q_chart = pd.DataFrame()
     
   
     
   
-    for key,cluster in result_SSEWMA.items():
-
-        if cluster['state'][-1] == 'OOC':
-            count_combi += 1
-            print('SSEWMA')
-            count_SSEWMA_com += 1
+    # for key,value in result_Q_chart.items():
+    #     for index,state in enumerate(value.T["States"]):
+    #         if state == 'OOC':
+    #             if index < count_combi_Q:
+    #                 count_combi_Q = index
+              
  
         
-    for key, value in result_Q_chart.items():
-        
-        if value["States"][-1] == "OOC":
-            count_combi += 1
-            print('Q')
-            count_Q_com += 1
+    for key,value in result_SSEWMA.items():
+        if value.T["state"][-1] == 'OOC':
+            count_combi = observations
+               
             
+    # if count_combi > count_combi:
+    #     count_combi = count_combi_Q
+        
+    
 
     return result_SSEWMA, result_Q_chart, count_combi
 
@@ -109,13 +128,19 @@ def get_CP_results(full_data, filepath, filename_CP, ARL_list_CP):
     
 
     # Apply MCPD
+    
     result_CP = Multivariate_Change_Point_Approach.Calculate_Multivariate_Change_Point(full_data)
-
-    count_CP = 0
     
-    count_CP += list(result_CP['state']).count('OOC')
     
 
+    count_CP = np.inf
+    
+    for ii, val in enumerate(list(result_CP['state'])):
+        if val == 'OOC':
+            if ii < count_CP:
+                count_CP = ii
+    
+   
     ARL_list_CP.append(count_CP)
     write_to_csv(result_CP.T, filepath, filename_CP)
     
@@ -127,10 +152,10 @@ if __name__ == "__main__":
     time1 = time.time()
     
 
-    run_length = 30
-    runs = 100
-    sim = 6
-    DBSCAN_threshold = 0.85
+    run_length = 200
+    runs = 10
+    sim = 2
+    DBSCAN_threshold = 0.80
     
 
     ARL_list_Combi = []
@@ -140,7 +165,8 @@ if __name__ == "__main__":
  
     
     
-    
+    cluster_matrix = np.zeros((97,run_length+1))
+    T_list = []
     
     
     tot_noise_cluster_number = []
@@ -152,7 +178,7 @@ if __name__ == "__main__":
     count_Q_com = 0
     count_SSEWMA_com = 0
     
-    for run in range(0, runs, 1):
+    for run in range(runs):
         filepath = r"C:\Users\tbeene\Desktop\Simulation\Full_Simulation\Full_Simulation_IC"
         filename_SSEWMA = f"run_SSEWMA_{run}_IC.csv"
         filename_CP = f"run_CP_{run}_IC.csv"
@@ -168,56 +194,73 @@ if __name__ == "__main__":
 
         # Generate a random process reading for OOC
         full_data = Generate_SPC_MEZCAL_Data_V1.generate_multivariate_data(cov, data_real, run_length)
-        
-        
         cluster_data_SSEWMA = apply_fixed_clustering(full_data, sim, data_real)
       
         
  
-        result_Q_chart = get_Q_results(full_data.copy(), filepath, filename_Q, ARL_list_Q)
-        result_SSEWMA, count_SSEWMA = get_SSEWMA_results(cluster_data_SSEWMA.copy(), full_data.copy(), filepath, filename_SSEWMA, ARL_list_SSEWMA)
-        # results_CP = get_CP_results(full_data.copy(), filepath, filename_CP, ARL_list_CP)
+        result_Q_chart = get_Q_results(full_data.iloc[:,:].copy(), filepath, filename_Q, ARL_list_Q, 0.0005378341924398626)
+        result_SSEWMA_2_L, count_SSEWMA = get_SSEWMA_results(cluster_data_SSEWMA.copy(), full_data.copy(), filepath, filename_SSEWMA, ARL_list_SSEWMA, 12.576804)
+        results_CP = get_CP_results(full_data.iloc[:,:50].copy(), filepath, filename_CP, ARL_list_CP)
         
            
         
         
         
-        count_combi = 0
-        for current_run_length in range(2,run_length,1):
 
-            current_data = full_data.copy().iloc[:,:current_run_length+1]
+        count_combi = np.inf
+        count_combi_Q = np.inf
+        
+        # for current_run_length in range(2,run_length,1):
+        #     if count_combi != np.inf:
+        #         break
+
+        #     current_data = full_data.copy().iloc[:,:current_run_length+1]
     
           
-            clustered_data_DBSCAN, cluster_data_noise, noise_cluster_number, total_cluster, biggest_cluster = apply_DBSCAN(current_data.T, DBSCAN_threshold, full_data)
-            result_SSEWMA, result_Q_chart, count_combi = get_combined_results(count_combi, current_data, filepath, filename_Combi_Q, ARL_list_Combi, sim, clustered_data_DBSCAN, cluster_data_noise, filename_Combi_SSEWMA, count_Q_com, count_SSEWMA_com)
-            
+        #     clustered_data_DBSCAN, cluster_data_noise, noise_cluster_number, total_cluster, biggest_cluster, cluster_matrix, T_list = apply_DBSCAN(current_data.T, DBSCAN_threshold, full_data,T_list, cluster_matrix)
+        #     result_SSEWMA, result_Q_chart, count_combi = get_combined_results(count_combi, count_combi_Q, current_data, filepath, filename_Combi_Q, ARL_list_Combi, sim, clustered_data_DBSCAN, cluster_data_noise, filename_Combi_SSEWMA, count_Q_com, count_SSEWMA_com)
+   
            
-            tot_noise_cluster_number.append(noise_cluster_number)
-            tot_total_cluster_list.append(total_cluster)
-            tot_biggest_cluster_list.append(biggest_cluster)
+        #     tot_noise_cluster_number.append(noise_cluster_number)
+        #     tot_total_cluster_list.append(total_cluster)
+        #     tot_biggest_cluster_list.append(biggest_cluster)
             
   
         # # ARL_OOC
-        ARL_list_Combi.append(count_combi)
-        # # Write results to csv for combination chart
-        # write_to_csv(result_SSEWMA.T, filepath, filename_Combi_SSEWMA)
-        # write_to_csv(result_Q_chart.T, filepath, filename_Combi_Q)
         
+        # Write results to csv for combination chart
+        # write_to_csv(result_SSEWMA.T, filepath, filename_Combi_SSEWMA)
+        write_to_csv(result_Q_chart.T, filepath, filename_Combi_Q)
+        ARL_list_Combi.append(count_combi)
       
     process_readings = len(full_data)
-  
-    ARL_Combi = (runs*run_length)/np.sum(ARL_list_Combi)
-    yerrCombi = (runs*run_length)/((np.sum(ARL_list_Combi)*np.sqrt(np.sum(ARL_list_Combi))))#/(np.sqrt(len(POD_list_combi))) # Standard error of the mean SEM
     
-    ARL_SSEWMA = (runs*run_length)/np.sum(ARL_list_SSEWMA)
-    yerrSSEWMA = (runs*run_length)/((np.sum(ARL_list_SSEWMA)*np.sqrt(np.sum(ARL_list_SSEWMA))))#/(np.sqrt(len(POD_list_combi))) # Standard error of the mean SEM
     
-    ARL_Q = (runs*run_length)/np.sum(ARL_list_Q)
-    yerrQ = (runs*run_length)/((np.sum(ARL_list_Q)*np.sqrt(np.sum(ARL_list_Q))))#/(np.sqrt(len(POD_list_combi))) # Standard error of the mean SEM
+
+
+    def calculate_metrics(ARL_list):
+        if len(ARL_list) == 0:
+            return 0, 0, 0, 0
+        else:
+            ARL = np.nanmean(ARL_list)
+            yerr = np.nanstd(ARL_list) / np.sqrt(len(ARL_list))
+            min_val = np.nanmin(ARL_list)
+            max_val = np.nanmax(ARL_list)
+            return ARL, yerr, min_val, max_val
     
-    ARL_CP = (runs*run_length)/np.sum(ARL_list_CP)
-    yerrCP = (runs*run_length)/((np.sum(ARL_list_CP)*np.sqrt(np.sum(ARL_list_CP))))#/(np.sqrt(len(POD_list_combi))) # Standard error of the mean SEM
+    ARL_list_Combi = [v if not np.isinf(v) else np.nan for v in ARL_list_Combi]
+    ARL_Combi, yerrCombi, min_combi, max_combi = calculate_metrics(ARL_list_Combi)
     
+    ARL_list_SSEWMA = [v if not np.isinf(v) else np.nan for v in ARL_list_SSEWMA]
+    ARL_SSEWMA, yerrSSEWMA, min_SSEWMA, max_SSEWMA = calculate_metrics(ARL_list_SSEWMA)
+    
+    ARL_list_Q = [v if not np.isinf(v) else np.nan for v in ARL_list_Q]
+    ARL_Q, yerrQ, min_Q, max_Q = calculate_metrics(ARL_list_Q)
+    
+    ARL_list_CP = [v if not np.isinf(v) else np.nan for v in ARL_list_CP]
+    ARL_CP, yerrCP, min_CP, max_CP = calculate_metrics(ARL_list_CP)
+
+
            
             
 print(count_Q_com)
@@ -253,19 +296,63 @@ write_to_csv(results_overal_df, filepath, filename_results)
 print(time.time() - time1)
 
 
-fig, ax1 = plt.subplots(figsize=(8, 8))
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.patches import Rectangle
 
-ax1.errorbar(1, ARL_Combi, yerr=yerrCombi, capsize=3, fmt="g--o", ecolor = "black", label = '$ARL_{IC}$ combined chart')
-ax1.errorbar(2, ARL_SSEWMA, yerr=yerrSSEWMA, capsize=3, fmt="b--o", ecolor = "black", label = '$ARL_{IC}$ SSEWMA chart')
-ax1.errorbar(3, ARL_Q, yerr=yerrQ, capsize=3, fmt="r--o", ecolor = "black", label = '$ARL_{IC}$ Q chart')
-ax1.errorbar(4, ARL_CP, yerr=yerrCP, capsize=3, fmt="y--o", ecolor = "black", label = '$ARL_{IC}$ MCPD')
+# Replace with your actual values
+means = [ARL_Combi, ARL_SSEWMA, ARL_Q, ARL_CP]
+errors = [yerrCombi, yerrSSEWMA, yerrQ, yerrCP] # SEMs
+mins = [min_combi, min_SSEWMA, min_Q, min_CP]
+maxs = [max_combi, max_SSEWMA, max_Q, max_CP]
+
+labels = [r'P-SSMEWMA', r'R-SSMEWMA', r'Q-chart', 'HC-chart']
+colors = ['green', 'blue', 'red', 'gold']
+
+x = np.arange(len(means))
+box_width = 0.4
+
+fig, ax = plt.subplots(figsize=(8, 6))
+
+for i in range(len(means)):
+    mean = means[i]
+    ci = 1.96 * errors[i]
+    lower = mean - ci
+    upper = mean + ci
+
+    # CI box
+    rect = Rectangle((x[i] - box_width / 2, lower),
+                     box_width, upper - lower,
+                     color=colors[i], alpha=0.4, edgecolor='black')
+    ax.add_patch(rect)
+
+    # Horizontal black line for the mean
+    ax.plot([x[i] - box_width / 2, x[i] + box_width / 2],
+            [mean, mean], color='black', linewidth=2, label='Mean' if i == 0 else "")
+
+    # Min–Max with caps
+    err_low = mean - mins[i]
+    err_high = maxs[i] - mean
+    ax.errorbar(x[i], mean, yerr=[[err_low], [err_high]],
+                fmt='none', ecolor='black', elinewidth=1.5, capsize=6,
+                label='Min/Max' if i == 0 else "")
+
+# Target ARL reference line
+ax.axhline(25, linestyle='--', color='orange', linewidth=1.5, label='Target ARL')
+
+# Aesthetics
+ax.set_xticks(x)
+ax.set_xticklabels(labels, rotation=30, ha='right', fontsize=12)
+ax.set_ylabel(r'$\mathit{ARL}_{IC}$', fontsize=13)
+ax.set_ylim(0, max(maxs) + 10)
+ax.grid(True, linestyle='--', alpha=0.6)
+ax.tick_params(axis='both', labelsize=11)
+ax.legend(fontsize=10)
+
+plt.tight_layout()
+plt.show()
 
 
-
-ax1.set_xlabel('Index [-]')
-ax1.set_ylabel("$ARL_{IC}$ [-]")
-ax1.grid()
-ax1.legend(loc = 'upper left')
 
 
 

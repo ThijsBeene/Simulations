@@ -18,6 +18,7 @@ import matplotlib.pyplot as plt
 import random
 from Generate_SPC_MEZCAL_Data_V1 import Load_Data, generate_multivariate_data, apply_fixed_clustering, apply_DBSCAN
 import math
+import scienceplots
 
 random.seed(10)
 
@@ -31,7 +32,7 @@ def get_Q_results(full_data, filepath, filename_Q, ARL_list_Q):
    
     
     # Apply Q chart
-    result_Q_chart = Q_Chart.Calculate_Q_Chart_UCL_LCL(full_data)
+    result_Q_chart = Q_Chart.Calculate_Q_Chart_UCL_LCL(full_data, 0.0005378341924398626)
 
     count = 0
 
@@ -45,8 +46,34 @@ def get_Q_results(full_data, filepath, filename_Q, ARL_list_Q):
 
     # ARL_OOC
     ARL_list_Q.append(count)
+
     # Store csv with run results
-    write_to_csv(result_Q_chart.T, filepath, filename_Q)
+    # write_to_csv(result_Q_chart.T, filepath, filename_Q)
+    
+    # plt.figure()
+    plt.style.use('science')
+    plt.grid()  
+    # plt.plot(result_SSEWMA[val2]['Norm'], label = '$||M||^2$')
+    # plt.plot(result_SSEWMA[val2]['Limit'], label = 'Limit (h)')
+    plt.xlabel('n [-]')
+    # plt.ylabel('$||M||^2$')
+    # plt.legend()
+    
+    plt.figure()
+    plt.grid()
+    plt.rc('font', size=14)
+    plt.rc('axes', titlesize=18)
+    plt.rc('axes', labelsize=18)
+    plt.rc('xtick', labelsize=18)
+    plt.rc('ytick', labelsize=18)
+    plt.rc('legend', fontsize=18)
+    plt.rc('figure', titlesize=16)
+    plt.plot(np.arange(1,31,1), result_Q_chart[res]['Observation'], label = r"$x_n$")
+    plt.plot(np.arange(1,31,1),result_Q_chart[res]['LCL'], c = 'r', label = 'UCL/LCL')
+    plt.plot(np.arange(1,31,1),result_Q_chart[res]['UCL'], c = 'r')
+    plt.legend()
+    plt.ylabel(r"$x_n$ [-]")
+    plt.xlabel('n [-]')
        
     
    
@@ -65,7 +92,7 @@ def get_SSEWMA_results(cluster_data, full_data, filepath, filename_SSEWMA, ARL_l
       
            
     # Apply SSMEWMA
-    result_SSEWMA = SSMEWMA.Calculate_SSEWMA_Norm_Lim(cluster_data, 0)
+    result_SSEWMA = SSMEWMA.Calculate_SSEWMA_Norm_Lim(cluster_data, 12.576804)
     
     
     
@@ -74,27 +101,42 @@ def get_SSEWMA_results(cluster_data, full_data, filepath, filename_SSEWMA, ARL_l
    
     
     # Count number of observations before OOC
-    for jj in range(start_OOC,run_length-1,1):
+    for jj in range(start_OOC,run_length,1):
         if result_SSEWMA[val2]['state'][jj] == "OOC" and count_SSEWMA == 0:
             count_SSEWMA += jj - start_OOC + 1
             break
-           
+  
+    # print(count_SSEWMA)
+    # plt.style.use('science')
     # plt.figure()
-    # plt.plot(result_SSEWMA[val2]['Norm'])
-    # plt.plot(result_SSEWMA[val2]['Limit'])
-    # plt.title(f'ssmewma{res}')
+    # plt.rc('font', size=14)
+    # plt.rc('axes', titlesize=18)
+    # plt.rc('axes', labelsize=18)
+    # plt.rc('xtick', labelsize=18)
+    # plt.rc('ytick', labelsize=18)
+    # plt.rc('legend', fontsize=18)
+    # plt.rc('figure', titlesize=16)
+    # plt.grid()
+    # plt.plot(result_SSEWMA[val2]['Norm'], label = '$||M_n||^2$')
+    # plt.plot(result_SSEWMA[val2]['Limit'], label = r'$LIM_{n,2}$')
+    # plt.xlabel('n [-]')
+    # plt.ylabel('$||M_n||^2$ [-]')
+    # plt.legend()
 
     ARL_list_SSEWMA.append(count_SSEWMA)
     # Store csv with run results
-    write_to_csv(result_SSEWMA.T, filepath, filename_SSEWMA)
+    # write_to_csv(result_SSEWMA.T, filepath, filename_SSEWMA)
     
     
 
     return result_SSEWMA, count_SSEWMA
 
-def get_combined_results(count_combi, full_data, filepath, filename_Combi_Q, ARL_list_Combi, clustered_data_DBSCAN, noise_clusters, filename_Combi_SSEWMA, res):
+def get_combined_results(count_combi, full_data, filepath, filename_Combi_Q, ARL_list_Combi, clustered_data_DBSCAN, noise_clusters, filename_Combi_SSEWMA):
     # Initialize variables
-    observations = len(full_data.T)
+    # Subtract 1, because we take the length of the df
+    # Shift occurs at Observation 20, but we start counting at 0, thus len give 21 instead of 20
+    observations = len(full_data.T) - 1
+    print(observations)
     val2 = None
 
 
@@ -114,30 +156,43 @@ def get_combined_results(count_combi, full_data, filepath, filename_Combi_Q, ARL
     
     # Apply Q-chart to noise data and SSEWMA to cluster data
     result_SSEWMA = SSMEWMA.Calculate_SSEWMA_Norm_Lim(clustered_data_DBSCAN, 1)
-    result_Q_chart = Q_Chart.Calculate_Q_Chart_UCL_LCL(noise_clusters[-1])
-    
+    if noise_clusters[-1].empty == False:
+        result_Q_chart = Q_Chart.Calculate_Q_Chart_UCL_LCL(noise_clusters[-1], 1)
+    else:
+        result_Q_chart = pd.DataFrame()
     
     
     # Detect special cause variation
-    if val2 != None:
+    if val2 in result_SSEWMA:
         # Count number of observations before OOC
         if result_SSEWMA[val2]['state'][-1] == "OOC" and count_combi == 0:
-            count_combi = observations - start_OOC 
+            count_combi = observations - start_OOC + 1
         
 
            
-    if val2 == None:
+    if res in result_Q_chart:
         # Count number of observations before OOC
         if result_Q_chart[res]['States'][-1] == "OOC" and count_combi == 0:
-            count_combi = observations - start_OOC 
-            
-    # if observations == start_OOC+1: 
-    #     print(observations)
-    #     print(start_OOC)
+            count_combi = observations - start_OOC + 1
+        
+    # if count_combi != 0:
+    #     print(count_combi)
     #     plt.figure()
-    #     plt.plot(result_SSEWMA[val2]['Norm'])
-    #     plt.plot(result_SSEWMA[val2]['Limit'])
-    #     plt.title(f'combined{res}')
+    #     plt.style.use('science')
+    #     plt.grid()
+    #     plt.plot(result_SSEWMA[val2]['Norm'], label = '$||M||^2$')
+    #     plt.plot(result_SSEWMA[val2]['Limit'], label = 'Limit (h)')
+    #     plt.xlabel('Observations [-]')
+    #     plt.ylabel('$||M||^2$')
+    #     plt.legend()
+        
+        # plt.figure()
+        # plt.plot(result_Q_chart[res]['Observation'], label = 'Observation')
+        # plt.plot(result_Q_chart[res]['LCL'], c = 'r', label = 'Control limit')
+        # plt.plot(result_Q_chart[res]['UCL'], c = 'r')
+        # plt.legend()
+        # plt.ylabel(f"{res}")
+
 
     return result_SSEWMA, result_Q_chart, count_combi
 
@@ -163,22 +218,51 @@ def get_CP_results(full_data, filepath, filename_CP, ARL_list_CP):
             count_CP += jj - start_OOC + 1
             break
        
-
+        
+    # print(count_CP)
+    # plt.figure()
+    # plt.rc('font', size=14)
+    # plt.rc('axes', titlesize=18)
+    # plt.rc('axes', labelsize=18)
+    # plt.rc('xtick', labelsize=18)
+    # plt.rc('ytick', labelsize=18)
+    # plt.rc('legend', fontsize=18)
+    # plt.grid()
+    # plt.plot(result_CP['Z'], label = '$Z_{max,n}$')
+    # plt.plot(result_CP['Limit'], label = 'Limit (h)', c = 'orange')
+    # plt.xlabel('n [-]')
+    # plt.ylabel('$Z_{max,n}$')
+    # plt.legend()
   
     ARL_list_CP.append(count_CP)
     # Store csv with run results
-    write_to_csv(result_CP.T, filepath, filename_CP)
+    # write_to_csv(result_CP.T, filepath, filename_CP)
     
     return result_CP
+ 
+def covariance_to_correlation(cov_matrix):
+    """Convert covariance matrix to correlation matrix."""
+    # Calculate the standard deviations
+    std_dev = np.sqrt(np.diag(cov_matrix))
     
+    # Outer product of standard deviations
+    outer_std_dev = np.outer(std_dev, std_dev)
+    
+    # Divide covariance matrix by outer product of standard deviations
+    corr_matrix = cov_matrix / outer_std_dev
+    
+    # Set diagonal to 1
+    np.fill_diagonal(corr_matrix, 1)
+    
+    return corr_matrix   
 
 if __name__ == "__main__":
     
     # Define global parameters
     run_length = 30
     start_OOC = 20
-    runs = 10
-    cluster_size = 6
+    runs = 200
+    cluster_size = 2
     DBSCAN_threshold = 0.8
     
     time1 = time.time()
@@ -213,7 +297,9 @@ if __name__ == "__main__":
     POD2_list_CP = []
     POD5_list_CP = []
     
-    for shift_size in np.arange(0, 5, 1):
+    cluster_matrix = np.zeros((97,run_length+1))
+    
+    for shift_size in np.arange(1, 6, 1):
         Shift_Size = shift_size
         
         
@@ -228,12 +314,13 @@ if __name__ == "__main__":
         tot_noise_cluster_number = []
         tot_total_cluster_list = []
         tot_biggest_cluster_list = []
-        
+        T_list = []
         data_real, cov = Load_Data(32)
         
-        for run in range(1, runs+1, 1):
+        for run in range(runs):
+           
             # Define data storage locations
-            filepath = r"C:\Users\tbeene\Desktop\Simulation\Full_Simulation\Full_Simulation_OOC_2"
+            filepath = r"C:\Users\tbeene\Desktop\Simulation\Full_Simulation\Full_simulation_OOC_Tau_5"
             filename_SSEWMA = f"run_SSMEWMA_{run}_{np.round(shift_size,2)}.csv"
             filename_CP = f"run_MCPD_{run}_{np.round(shift_size,2)}.csv"
             filename_Q = f"run_Q_{run}_{np.round(shift_size,2)}.csv"
@@ -246,8 +333,8 @@ if __name__ == "__main__":
             
          
 
-            full_data = Generate_SPC_MEZCAL_Data_V1.generate_multivariate_data(cov, data_real, run_length)
-            
+            full_data = Generate_SPC_MEZCAL_Data_V1.generate_multivariate_data(data_real, run_length).T
+
             # Generate a random process reading to be OOC
             val = random.randint(1, len(full_data) - 1)
             res = list(full_data.T.keys())[val]
@@ -255,39 +342,39 @@ if __name__ == "__main__":
             # Calculate random clusters based on fixed cluster size
             cluster_data_SSEWMA = apply_fixed_clustering(full_data, cluster_size, data_real)
             
-            # Q, SSMEWMA, MCPD results
+            # # Q, SSMEWMA, MCPD results
             results_Q = get_Q_results(full_data.copy(), filepath, filename_Q, ARL_list_Q)
             result_SSEWMA, count_SSEWMA = get_SSEWMA_results(cluster_data_SSEWMA, full_data.copy(), filepath, filename_SSEWMA, ARL_list_SSEWMA)
-            # results_CP = get_CP_results(full_data.copy(), filepath, filename_CP, ARL_list_CP)
+            results_CP = get_CP_results(full_data.copy(), filepath, filename_CP, ARL_list_CP)
             
+           
             # Get combination chart results by reclustering every timestep
             count_combi = 0
-            for current_run_length in range(20,run_length,1):
+            for current_run_length in range(start_OOC,run_length,1):
+                print(current_run_length)
                 # Speed up simulations by stopping when OOC is detected
                 if count_combi != 0:
                     break
 
-                # Get df of observations until and including the final observation
-                current_data = full_data.copy().iloc[:,:current_run_length+1]
+                current_data = full_data.copy().iloc[:,:current_run_length+1].T
+            
                 
                 # Recluster with DBSCAN based on current data set
-                clustered_data_DBSCAN, cluster_data_noise, noise_cluster_number, total_cluster, biggest_cluster = apply_DBSCAN(current_data.T, DBSCAN_threshold, data_real)
+                clustered_data_DBSCAN, cluster_data_noise, cluster_size_counts_dict, T_list = apply_DBSCAN(current_data, data_real, T_list, cluster_matrix)
+                
                 
                 # Determine the SSEWMA and Q results based on the reclustered data
-                results_SSEWMA, result_Q_chart, count_combi = get_combined_results(count_combi, current_data, filepath, filename_Combi_Q, ARL_list_Combi, clustered_data_DBSCAN, cluster_data_noise, filename_Combi_SSEWMA, res)
-                
+                results_SSEWMA, result_Q_chart, count_combi = get_combined_results(count_combi, current_data.T, filepath, filename_Combi_Q, ARL_list_Combi, clustered_data_DBSCAN, cluster_data_noise, filename_Combi_SSEWMA)
+               
         
-
-                tot_noise_cluster_number.append(noise_cluster_number)
-                tot_total_cluster_list.append(total_cluster)
-                tot_biggest_cluster_list.append(biggest_cluster)
                 
   
             # ARL_OOC
             ARL_list_Combi.append(count_combi)
+            # ARL_list_CP.append(0)
             # Store csv with run results for combined chart
-            write_to_csv(result_SSEWMA.T, filepath, filename_Combi_SSEWMA)
-            write_to_csv(result_Q_chart.T, filepath, filename_Combi_Q)
+            # write_to_csv(result_SSEWMA.T, filepath, filename_Combi_SSEWMA)
+            # write_to_csv(result_Q_chart.T, filepath, filename_Combi_Q)
           
             
         POD5 = len([x for x in ARL_list_Combi if 0 < x <= 5])
@@ -322,14 +409,14 @@ if __name__ == "__main__":
         POD5_list_Q.append((POD5/len(ARL_list_Q)))
     
     
-        # CP method
-        # POD5 = len([x for x in ARL_list_CP if 0 < x <= 5])
-        # POD2 = len([x for x in ARL_list_CP if 0 < x <= 2])
-        # POD10 = len([x for x in ARL_list_CP if 0 < x <= 10])
+        # # CP method
+        POD5 = len([x for x in ARL_list_CP if 0 < x <= 5])
+        POD2 = len([x for x in ARL_list_CP if 0 < x <= 2])
+        POD10 = len([x for x in ARL_list_CP if 0 < x <= 10])
         
-        # POD_list_CP.append((POD10/len(ARL_list_CP)))
-        # POD2_list_CP.append((POD2/len(ARL_list_CP)))
-        # POD5_list_CP.append((POD5/len(ARL_list_CP)))
+        POD_list_CP.append((POD10/len(ARL_list_CP)))
+        POD2_list_CP.append((POD2/len(ARL_list_CP)))
+        POD5_list_CP.append((POD5/len(ARL_list_CP)))
         
     
         Shifts.append(Shift_Size)
@@ -348,10 +435,11 @@ if __name__ == "__main__":
        
 
     # Standard error
-    # 99% confidence interval
-    yerrCombi = 1.96*(np.std(POD_list_Combi)/np.sqrt(len(POD_list_Combi)))
-    yerrCombi2 = 1.96*(np.std(POD2_list_Combi)/np.sqrt(len(POD2_list_Combi)))
-    yerrCombi5 = 1.96*(np.std(POD5_list_Combi)/np.sqrt(len(POD5_list_Combi)))
+    # 95% confidence interval
+    
+    yerrCombi = 2*1.96*np.sqrt((POD_list_Combi*(1-POD_list_Combi))/len(ARL_list_Combi))
+    yerrCombi2 = 2*1.96*np.sqrt((POD2_list_Combi*(1-POD2_list_Combi))/len(ARL_list_Combi))
+    yerrCombi5 = 2*1.96*np.sqrt((POD5_list_Combi*(1-POD5_list_Combi))/len(ARL_list_Combi))
        
 
     results_overal_df['POD10_Combi'] =  POD_list_Combi 
@@ -370,9 +458,9 @@ if __name__ == "__main__":
        
 
     # Standard error
-    yerrSSEWMA = np.sqrt((POD_list_SSEWMA*(1-POD_list_SSEWMA))/len(POD_list_SSEWMA))
-    yerrSSEWMA2 = np.sqrt((POD2_list_SSEWMA*(1-POD2_list_SSEWMA))/len(POD2_list_SSEWMA))
-    yerrSSEWMA5 = np.sqrt((POD5_list_SSEWMA*(1-POD5_list_SSEWMA))/len(POD5_list_SSEWMA))
+    yerrSSEWMA = 2*1.96*np.sqrt((POD_list_SSEWMA*(1-POD_list_SSEWMA))/len(ARL_list_SSEWMA))
+    yerrSSEWMA2 = 2*1.96*np.sqrt((POD2_list_SSEWMA*(1-POD2_list_SSEWMA))/len(ARL_list_SSEWMA))
+    yerrSSEWMA5 = 2*1.96*np.sqrt((POD5_list_SSEWMA*(1-POD5_list_SSEWMA))/len(ARL_list_SSEWMA))
        
 
     results_overal_df['POD10_SSEWMA'] =  POD_list_SSEWMA 
@@ -390,9 +478,9 @@ if __name__ == "__main__":
        
 
     # Standard error
-    yerrQ = np.sqrt((POD_list_Q*(1-POD_list_Q))/len(POD_list_Q))
-    yerrQ2 = np.sqrt((POD2_list_Q*(1-POD2_list_Q))/len(POD2_list_Q))
-    yerrQ5 = np.sqrt((POD5_list_Q*(1-POD5_list_Q))/len(POD5_list_Q))
+    yerrQ = 2*1.96*np.sqrt((POD_list_Q*(1-POD_list_Q))/len(ARL_list_Q))
+    yerrQ2 = 2*1.96*np.sqrt((POD2_list_Q*(1-POD2_list_Q))/len(ARL_list_Q))
+    yerrQ5 = 2*1.96*np.sqrt((POD5_list_Q*(1-POD5_list_Q))/len(ARL_list_Q))
        
 
     results_overal_df['POD10_Q'] =  POD_list_Q
@@ -404,24 +492,24 @@ if __name__ == "__main__":
     results_overal_df['yerrQ5'] = yerrQ5
     
     # CP
-    # POD_list_CP = np.array(POD_list_CP)
-    # POD2_list_CP = np.array(POD2_list_CP)
-    # POD5_list_CP = np.array(POD5_list_CP)
+    POD_list_CP = np.array(POD_list_CP)
+    POD2_list_CP = np.array(POD2_list_CP)
+    POD5_list_CP = np.array(POD5_list_CP)
        
 
-    # # Standard error
-    # yerrCP = np.sqrt((POD_list_CP*(1-POD_list_CP))/len(POD_list_CP))
-    # yerrCP2 = np.sqrt((POD2_list_CP*(1-POD2_list_CP))/len(POD2_list_CP))
-    # yerrCP5 = np.sqrt((POD5_list_CP*(1-POD5_list_CP))/len(POD5_list_CP))
+    # Standard error
+    yerrCP = 2*1.96*np.sqrt((POD_list_CP*(1-POD_list_CP))/len(ARL_list_CP))
+    yerrCP2 = 2*1.96*np.sqrt((POD2_list_CP*(1-POD2_list_CP))/len(ARL_list_CP))
+    yerrCP5 = 2*1.96*np.sqrt((POD5_list_CP*(1-POD5_list_CP))/len(ARL_list_CP))
        
 
-    # results_overal_df['POD10_CP'] =  POD_list_CP
-    # results_overal_df['POD2_CP'] =  POD2_list_CP
-    # results_overal_df['POD5_CP'] = POD5_list_CP
+    results_overal_df['POD10_CP'] =  POD_list_CP
+    results_overal_df['POD2_CP'] =  POD2_list_CP
+    results_overal_df['POD5_CP'] = POD5_list_CP
 
-    # results_overal_df['yerrCP10'] = yerrCP
-    # results_overal_df['yerrCP2'] = yerrCP2
-    # results_overal_df['yerrCP5'] = yerrCP5
+    results_overal_df['yerrCP10'] = yerrCP
+    results_overal_df['yerrCP2'] = yerrCP2
+    results_overal_df['yerrCP5'] = yerrCP5
     
     
     # Add column containing shifts
@@ -433,37 +521,131 @@ write_to_csv(results_overal_df, filepath, filename_results)
 
 
 
-print(time.time() - time1)
+# print(time.time() - time1)
 
 
 
-# Plot results
-shift_size = np.arange(0,5,1)
+# plt.style.use('science')
+
+# shift_size = np.arange(0.5, 5.5, 0.5)
+
+# fig, axs = plt.subplots(3, 1, figsize=(7, 12), sharex=True)
+
+# # --- Colors and markers for consistency ---
+# methods = [
+#     ('$POD_n$ SSMEWMA optimized', 'g--o', 'black'),
+#     ('$POD_n$ SSMEWMA', 'b--o', 'black'),
+#     ('$POD_n$ Q', 'r--o', 'black'),
+#     ('$POD_n$ HC', 'y--o', 'black')
+    
+# ]
+
+# # --- Data for each POD level ---
+# pod_levels = {
+#     2: [POD2_list_combi, POD2_list_SSEWMA, POD2_list_Q, POD2_list_CP],
+#     5: [POD5_list_combi, POD5_list_SSEWMA, POD5_list_Q, POD5_list_CP],
+#     10: [POD_list_combi, POD_list_SSEWMA, POD_list_Q, POD_list_CP],
+# }
+# yerrs = {
+#     2: [yerrCombi2, yerrSSEWMA2, yerrQ2, yerrCP2],
+#     5: [yerrCombi5, yerrSSEWMA5, yerrQ5, yerrCP5],
+#     10: [yerrCombi, yerrSSEWMA, yerrQ, yerrCP],
+# }
+
+# for idx, pod_level in enumerate([2, 5, 10]):
+#     ax = axs[idx]
+#     pod_data = pod_levels[pod_level]
+#     pod_errs = yerrs[pod_level]
+
+#     for method_idx, (label_template, fmt, ecolor) in enumerate(methods):
+#         ax.errorbar(
+#             shift_size,
+#             pod_data[method_idx],
+#             yerr=pod_errs[method_idx],
+#             capsize=3,
+#             fmt=fmt,
+#             ecolor=ecolor,
+#             label=label_template.replace("x", str(pod_level))
+#         )
+
+#     ax.set_ylabel(f"$POD_{pod_level}$ [-]")
+#     ax.grid(True)
+    
+# axs[0].legend(loc='upper left')
+# axs[0].set_xticks(shift_size)
+
+# axs[2].set_xlabel('Shift size [$\sigma$]')
+
+# plt.tight_layout()
+# plt.savefig('POD_2_5_10_AllMethods.pdf')
+# plt.show()
 
 
-fig, ax1 = plt.subplots(figsize=(8, 8))
-
-ax1.errorbar(shift_size, POD_list_combi, yerr=yerrCombi, capsize=3, fmt="g--o", ecolor = "black", label = '$POD_{10}$ combined')
-# ax1.errorbar(shift_size, POD5_list_combi, yerr=yerrCombi5, capsize=3, fmt="g--o", ecolor = "black", label = '$POD_{5} combined$')
-# ax1.errorbar(shift_size, POD2_list_combi, yerr=yerrCombi2, capsize=3, fmt="g--o", ecolor = "black", label = '$POD_{2} combined$')
-
-ax1.errorbar(shift_size, POD_list_SSEWMA, yerr=yerrSSEWMA, capsize=3, fmt="r--o", ecolor = "black", label = '$POD_{10}$ SSEWMA')
-# ax1.errorbar(shift_size, POD5_list_SSEWMA, yerr=yerrSSEWMA5, capsize=3, fmt="r--o", ecolor = "black", label = '$POD_{5}$ SSEWMA')
-# ax1.errorbar(shift_size, POD2_list_SSEWMA, yerr=yerrSSEWMA2, capsize=3, fmt="r--o", ecolor = "black", label = '$POD_{2}$ SSEWMA')
-
-ax1.errorbar(shift_size, POD_list_Q, yerr=yerrQ, capsize=3, fmt="y--o", ecolor = "black", label = '$POD_{10}$ Q')
-# ax1.errorbar(shift_size, POD5_list_Q, yerr=yerrQ5, capsize=3, fmt="y--o", ecolor = "black", label = '$POD_{5}$ Q')
-# ax1.errorbar(shift_size, POD2_list_Q, yerr=yerrQ2, capsize=3, fmt="y--o", ecolor = "black", label = '$POD_{2}$ Q')
-
-# ax1.errorbar(shift_size, POD_list_CP, yerr=yerrCP, capsize=3, fmt="b--o", ecolor = "black", label = '$POD_{10}$ CP')
-# ax1.errorbar(shift_size, POD5_list_CP, yerr=yerrCP5, capsize=3, fmt="b--o", ecolor = "black", label = '$POD_{5}$ CP')
-# ax1.errorbar(shift_size, POD2_list_CP, yerr=yerrCP2, capsize=3, fmt="b--o", ecolor = "black", label = '$POD_{2}$ CP')
-
-ax1.set_xlabel('Shift size [$\sigma$]')
-ax1.set_ylabel("Probability of detection (POD) [-]")
-ax1.grid()
-ax1.legend(loc = 'upper left')
 
 
 
-#
+plt.style.use('science')
+
+shift_size = np.arange(1, 6, 1)
+
+fig, axs = plt.subplots(3, 1, figsize=(7, 12), sharex=True)
+
+# --- Colors and markers for consistency ---
+methods = [
+    ('P-SSMEWMA', 'g--o', 'black'),
+    ('R-SSMEWMA', 'b--o', 'black'),
+    ('Q', 'r--o', 'black'),
+    ('HC', 'y--o', 'black')
+    
+]
+
+# --- Data for each POD level ---
+pod_levels = {
+    2: [POD2_list_combi, POD2_list_SSEWMA, POD2_list_Q, POD2_list_CP],
+    5: [POD5_list_combi, POD5_list_SSEWMA, POD5_list_Q, POD5_list_CP],
+    10: [POD_list_combi, POD_list_SSEWMA, POD_list_Q, POD_list_CP],
+}
+yerrs = {
+    2: [yerrCombi2, yerrSSEWMA2, yerrQ2, yerrCP2],
+    5: [yerrCombi5, yerrSSEWMA5, yerrQ5, yerrCP5],
+    10: [yerrCombi, yerrSSEWMA, yerrQ, yerrCP],
+}
+
+# Set font sizes
+plt.rc('font', size=12)          # controls default text sizes
+plt.rc('axes', titlesize=14)     # fontsize of the axes title
+plt.rc('axes', labelsize=16)     # fontsize of the x and y labels
+plt.rc('xtick', labelsize=14)    # fontsize of the tick labels
+plt.rc('ytick', labelsize=14)    # fontsize of the tick labels
+plt.rc('legend', fontsize=12)    # legend fontsize
+plt.rc('figure', titlesize=16)   # fontsize of the figure title
+
+for idx, pod_level in enumerate([2, 5, 10]):
+    ax = axs[idx]
+    pod_data = pod_levels[pod_level]
+    pod_errs = yerrs[pod_level]
+
+    for method_idx, (label_template, fmt, ecolor) in enumerate(methods):
+        ax.errorbar(
+            shift_size,
+            pod_data[method_idx],
+            yerr=pod_errs[method_idx],
+            capsize=3,
+            fmt=fmt,
+            ecolor=ecolor,
+            label=label_template
+        )
+
+    ax.set_ylabel(f"$POD_{{{pod_level}}}$ [-]")
+    ax.grid(True)
+    
+axs[0].legend(loc='upper left')
+axs[0].set_xticks(shift_size)
+
+axs[2].set_xlabel(r'$\delta$ [-]')
+
+plt.tight_layout()
+plt.savefig('POD_2_5_10_AllMethods.pdf')
+plt.show()
+
+

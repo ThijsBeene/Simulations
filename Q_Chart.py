@@ -16,10 +16,10 @@ def calc_dist_values(N, k):
 def Q_Chart(univariate_data, N, k):
     """Computes UCL and LCL for the Q-chart."""
     mean = np.mean(univariate_data)
-    std_dev = np.std(univariate_data, ddof=1)
+    std_overall = np.sqrt((1/(N-1)) * np.sum((univariate_data - mean)**2)) 
     Q_Calc = calc_dist_values(N, k)
-    UCL = mean + Q_Calc * std_dev
-    LCL = mean - Q_Calc * std_dev
+    UCL = mean + Q_Calc * std_overall
+    LCL = mean - Q_Calc * std_overall
     return UCL, LCL
 
 def Check_State(current_observation, UCL, LCL):
@@ -28,18 +28,17 @@ def Check_State(current_observation, UCL, LCL):
         return "OOC"
     return "IC"
 
-def Calculate_Q_Chart_UCL_LCL(full_data):
+def Calculate_Q_Chart_UCL_LCL(full_data, alpha):
     """Computes the Q-chart UCL, LCL, and states for the data."""
     result_df = pd.DataFrame()
     p = len(full_data)
+  
+   
     
-    # Calculate what k value to use to get an ARL_IC of 50
-    if p == 96:
-        p_IC = ((1-(1-(1/50))**(1/p)))
-        k = norm.ppf(1-(p_IC/2))
-    else:
-        p_IC = ((1-(1-(1/100))**(1/p)))
-        k = norm.ppf(1-(p_IC/2))
+    # Calculate what k value to use to get a specific ARL
+    # alpha = 1-(24/25)**(1/(p))
+  
+    k = norm.ppf(1 - alpha/2)
 
     for key, value in full_data.T.items():
         UCL_list, LCL_list, state_list, include_list = [], [], [], []
@@ -47,12 +46,14 @@ def Calculate_Q_Chart_UCL_LCL(full_data):
         for ii in range(len(value)):
             current_observation = value[ii]
             
+            # We only use the IC observations for determining Q chart control limits
             n = len(include_list)
-            if n >= 6: # Q-chart requires at least 6 points
+            if n >= 5: # Q-chart requires at least 6 points
                 UCL, LCL = Q_Chart(include_list, n, k)
             else:
                 UCL, LCL = None, None
 
+            # Check state of last observation
             state = Check_State(current_observation, UCL, LCL)
 
             if state == "IC":
@@ -65,3 +66,4 @@ def Calculate_Q_Chart_UCL_LCL(full_data):
         result_df[key] = {"Observation": value.tolist(), "UCL": UCL_list, "LCL": LCL_list, "States": state_list}
 
     return result_df
+
