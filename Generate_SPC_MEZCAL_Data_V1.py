@@ -368,17 +368,13 @@ def find_groups(df2, data_real, T_list, cluster_matrix= None):
     N0 = 0.1
     
     Corr_0 = np.identity(k) + 10e-6 * np.random.rand(k,k)
-    distance_matrix = corr_matrix.values  #Corr_0*(N0/(n-N0)) + (1-N0/(n-N0)) * corr_matrix.values 
+    distance_matrix = corr_matrix.values 
 
+    # Get MST
     mst, all_edges = max_spanning_tree_edges(np.abs(distance_matrix))
-
-
     pruned_mst, F_list =  simulated_annealing_prune(mst, len(distance_matrix), all_edges, distance_matrix, df2.copy())
     
-
-    
-    
-  
+    # Get labels
     labelsDBSCAN = label_nodes_by_cluster_list(pruned_mst, k)
 
  
@@ -428,15 +424,8 @@ def find_groups(df2, data_real, T_list, cluster_matrix= None):
         cluster_matrix[len(cluster)][n] += len(cluster)
         SSMEWMA_Cluster_Sum += len(cluster)
                 
-    # Fill noise cluster in matrix
-    # if cluster_matrix != []:
-    cluster_matrix[1][n] += 96 - SSMEWMA_Cluster_Sum
-    
-    
-
-    
-
-    T_list.append((-F_list[-1]))
+    # Add final score to list for plotting 
+    T_list.append(F_list[-1])
 
         
     return cluster_dict_filter, noise_clusters, cluster_matrix, T_list

@@ -47,18 +47,7 @@ def get_Q_results(full_data, filepath, filename_Q, ARL_list_Q):
     # ARL_OOC
     ARL_list_Q.append(count)
 
-    # Store csv with run results
-    # # write_to_csv(result_Q_chart.T, filepath, filename_Q)
-    
-    # # plt.figure()
-    # plt.style.use('science')
-    # plt.grid()  
-    # # plt.plot(result_SSEWMA[val2]['Norm'], label = '$||M||^2$')
-    # # plt.plot(result_SSEWMA[val2]['Limit'], label = 'Limit (h)')
-    # plt.xlabel('n [-]')
-    # # plt.ylabel('$||M||^2$')
-    # # plt.legend()
-    
+
     plt.figure()
     plt.grid()
     plt.rc('font', size=14)
@@ -518,68 +507,6 @@ if __name__ == "__main__":
         
 # Store csv with global results 
 write_to_csv(results_overal_df, filepath, filename_results)
-
-
-
-# print(time.time() - time1)
-
-
-
-# plt.style.use('science')
-
-# shift_size = np.arange(0.5, 5.5, 0.5)
-
-# fig, axs = plt.subplots(3, 1, figsize=(7, 12), sharex=True)
-
-# # --- Colors and markers for consistency ---
-# methods = [
-#     ('$POD_n$ SSMEWMA optimized', 'g--o', 'black'),
-#     ('$POD_n$ SSMEWMA', 'b--o', 'black'),
-#     ('$POD_n$ Q', 'r--o', 'black'),
-#     ('$POD_n$ HC', 'y--o', 'black')
-    
-# ]
-
-# # --- Data for each POD level ---
-# pod_levels = {
-#     2: [POD2_list_combi, POD2_list_SSEWMA, POD2_list_Q, POD2_list_CP],
-#     5: [POD5_list_combi, POD5_list_SSEWMA, POD5_list_Q, POD5_list_CP],
-#     10: [POD_list_combi, POD_list_SSEWMA, POD_list_Q, POD_list_CP],
-# }
-# yerrs = {
-#     2: [yerrCombi2, yerrSSEWMA2, yerrQ2, yerrCP2],
-#     5: [yerrCombi5, yerrSSEWMA5, yerrQ5, yerrCP5],
-#     10: [yerrCombi, yerrSSEWMA, yerrQ, yerrCP],
-# }
-
-# for idx, pod_level in enumerate([2, 5, 10]):
-#     ax = axs[idx]
-#     pod_data = pod_levels[pod_level]
-#     pod_errs = yerrs[pod_level]
-
-#     for method_idx, (label_template, fmt, ecolor) in enumerate(methods):
-#         ax.errorbar(
-#             shift_size,
-#             pod_data[method_idx],
-#             yerr=pod_errs[method_idx],
-#             capsize=3,
-#             fmt=fmt,
-#             ecolor=ecolor,
-#             label=label_template.replace("x", str(pod_level))
-#         )
-
-#     ax.set_ylabel(f"$POD_{pod_level}$ [-]")
-#     ax.grid(True)
-    
-# axs[0].legend(loc='upper left')
-# axs[0].set_xticks(shift_size)
-
-# axs[2].set_xlabel('Shift size [$\sigma$]')
-
-# plt.tight_layout()
-# plt.savefig('POD_2_5_10_AllMethods.pdf')
-# plt.show()
-
 
 
 

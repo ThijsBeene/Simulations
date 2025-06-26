@@ -22,6 +22,7 @@ from Generate_SPC_MEZCAL_Data_V1 import apply_fixed_clustering
 from Generate_SPC_MEZCAL_Data_V1 import find_groups
 import math
 import scienceplots
+from matplotlib.patches import Rectangle
 
 def write_to_csv(data, filepath, filename):
     data.to_csv(filepath + '/' + filename, sep=',', index=True, encoding='utf-8')
@@ -238,11 +239,7 @@ if __name__ == "__main__":
     ARL_CP, yerrCP, min_CP, max_CP = calculate_metrics(ARL_list_CP)
 
 
-           
-            
-print(count_Q_com)
-print(count_SSEWMA_com)  
-    
+
      
 results_overal_df = pd.DataFrame()
 
@@ -268,14 +265,6 @@ results_overal_df['yerrCP'] = yerrCP
     
 write_to_csv(results_overal_df, filepath, filename_results)
 
-
-
-print(time.time() - time1)
-
-
-import matplotlib.pyplot as plt
-import numpy as np
-from matplotlib.patches import Rectangle
 
 # Replace with your actual values
 means = [ARL_Combi, ARL_SSEWMA, ARL_Q, ARL_CP]
@@ -331,18 +320,3 @@ plt.show()
 
 
 
-
-
-# ax1.set_xlabel('DBSCAN threshold')
-# ax1.set_ylabel("POD after 10 observations", color = 'green')
-
-# ax1.grid()
-# ax1.legend(loc = 'upper left')
-
-# ax2.set_ylabel("Number of process readings in cluster", color = 'blue')
-
-# ax2.legend(loc = 'center left')
-# fig.suptitle("Combination control chart $ARL_{3}$ for varying DBSCAN threshold")
-# fig.autofmt_xdate()
-
-# plt.show()
