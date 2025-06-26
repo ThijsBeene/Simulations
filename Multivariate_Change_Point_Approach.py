@@ -46,172 +46,6 @@ def generate_multivariate_data(cov, data, run_length):
 
 
 
-
-
-# def compute_Wnk(data, k):
-#     data = data.values
-#     subset1 = data[:, :k]
-#     subset2 = data[:, k:]
-#     W1 = np.sum(subset1.T @ subset1) - np.sum(subset1 * subset1)
-#     W2 = np.sum(subset2.T @ subset2) - np.sum(subset2 * subset2)
-#     W3 = np.sum(subset1.T @ subset2)
-#     denom1 = k * (k - 1)
-#     denom2 = (data.shape[1] - k) * (data.shape[1] - k - 1)
-#     denom3 = k * (data.shape[1] - k)
-#     return W1 / denom1 + W2 / denom2 - 2 * W3 / denom3
-
-# def compute_s2_w(data, k):
-#     data = data.values
-#     n = data.shape[1]
-#     if k <= 1 or n - k <= 1:
-#         return 0
-#     s1, s2, s3 = 0, 0, 0
-#     for j in range(k):
-#         for l in range(j + 1, k):
-#             mean = np.mean(np.delete(data[:, :k], [j, l], axis=1), axis=1, keepdims=True)
-#             dj = data[:, j:j+1] - mean
-#             dl = data[:, l:l+1] - mean
-#             s1 += np.trace((dj @ dj.T) @ (dl @ dl.T))
-#     for j in range(n - k):
-#         for l in range(j + 1, n - k):
-#             mean = np.mean(np.delete(data[:, k:], [j, l], axis=1), axis=1, keepdims=True)
-#             dj = data[:, k + j:k + j + 1] - mean
-#             dl = data[:, k + l:k + l + 1] - mean
-#             s2 += np.trace((dj @ dj.T) @ (dl @ dl.T))
-#     for j in range(k):
-#         mj = np.mean(np.delete(data[:, :k], j, axis=1), axis=1, keepdims=True)
-#         dj = data[:, j:j+1] - mj
-#         for l in range(n - k):
-#             ml = np.mean(np.delete(data[:, k:], l, axis=1), axis=1, keepdims=True)
-#             dl = data[:, k + l:k + l + 1] - ml
-#             s3 += np.trace((dj @ dj.T) @ (dl @ dl.T))
-#     d1 = k * (k - 1)
-#     d2 = (n - k) * (n - k - 1)
-#     d3 = k * (n - k)
-#     return (2 * s1 / d1**2) + (2 * s2 / d2**2) + (4 * s3 / d3**2)
-
-# def compute_Wnk(df, k):
-#     """Compute W_n_k as per the control chart method."""
-    
-#     W1, W2, W3 = 0, 0, 0
-    
-#     # Use numpy arrays to speed up calculations drastically!!
-#     data = df.values
-#     n = data.shape[1]
-
-    
-#     for i in range(k):
-#         for j in range(k):
-#             if i != j:
-#                 W1 += data[:, i].T @ data[:, j]
-
-#     for i in range(k, n):
-#         for j in range(k, n):
-#             if i != j:
-#                 W2 += data[:, i].T @ data[:, j]
-
-#     for i in range(k):
-#         for j in range(k, n):
-#             W3 += data[:, i].T @ data[:, j]
-
-#     w_n_k = (W1 / (k * (k - 1)) + W2 / ((n - k) * (n - k - 1)) - 2 * W3 / (k * (n - k)))
-    
-#     return w_n_k
-
-# def compute_s2_w(df, k):
-#     """
-#     Computes s^2_W following the correct order: sum first, then take trace.
-#     Optimized and clearer version.
-#     """
-#     data = df.values
-#     n = data.shape[1]
-#     p = df.shape[0]
-   
-
-#     # Edge case guards
-#     if k <= 1 or n - k <= 1:
-#         return 0
-
-#     subset1 = data[:, :k]
-#     subset2 = data[:, k:]
-
-#     # Initialize matrices
-#     S1_matrix = 0
-#     S2_matrix = 0
-#     S3_matrix = 0
-
-#     # S1: pre-change block
-#     for j in range(k):
-#         for l in range(k):
-#             if j != l:
-#                 mean_vector = np.mean(np.delete(subset1, [j, l], axis=1), axis=1, keepdims=True) 
-#                 delta_j = (subset1[:, j] - mean_vector)
-#                 delta_l = (subset1[:, l] - mean_vector)
-
-#                 S1_matrix += ((delta_j @ delta_j.T) @ (delta_l @ delta_l.T))
-
-#     # S2: post-change block
-#     for j in range(n - k):
-#         for l in range(n - k):
-#             if j != l:
-#                 mean_vector = np.mean(np.delete(subset2, [j, l], axis=1), axis=1, keepdims=True) 
-#                 delta_j = (subset2[:, j] - mean_vector)
-#                 delta_l = (subset2[:, l] - mean_vector)
-
-#                 S2_matrix += ((delta_j @ delta_j.T) @ (delta_l @ delta_l.T))
-
-#     # S3: cross block
-#     for j in range(k):
-#         for l in range(n - k):
-            
-#             mean_vector_0 = np.mean(np.delete(subset1, [j], axis=1), axis=1, keepdims=True)
-#             mean_vector_1 = np.mean(np.delete(subset2, [l], axis=1), axis=1, keepdims=True) 
-
-#             delta_j = subset1[:, j] - mean_vector_0
-#             delta_l = subset2[:, l] - mean_vector_1
-
-#             S3_matrix += ((delta_j @ delta_j.T) @ (delta_l @ delta_l.T))
-
-
-#     # Calculate denomerator
-#     denom_S1 = k * (k - 1)
-#     denom_S2 = (n - k) * (n - k - 1)
-#     denom_S3 = k * (n - k)
-
-#     # Take trace of summed results
-#     S1 = np.trace(S1_matrix) / denom_S1 if denom_S1 > 0 else 0
-#     S2 = np.trace(S2_matrix) / denom_S2 if denom_S2 > 0 else 0
-#     S3 = np.trace(S3_matrix) / denom_S3 if denom_S3 > 0 else 0
-
-#     # s^2_W calculation
-#     # Note that this is the squared value!
-#     s2_w = (2 * S1 / denom_S1) + (2 * S2 / denom_S2) + (4 * S3 / denom_S3)
-
-#     return s2_w
-
-# def compute_Wnk(df, k):
-#     X = df.T.values
-#     n = X.shape[0]
-
-#     if not (1 < k < n - 1):
-#         raise ValueError("k must be in range (1, n-1)")
-
-#     # First term
-#     sum1 = sum(np.dot(X[i], X[j]) for i in range(k) for j in range(k) if i != j)
-#     term1 = sum1 / (k * (k - 1))
-
-#     # Second term
-#     sum2 = sum(np.dot(X[i], X[j]) for i in range(k, n) for j in range(k, n) if i != j)
-#     term2 = sum2 / ((n - k) * (n - k - 1))
-
-#     # Third term
-#     sum3 = sum(np.dot(X[i], X[j]) for i in range(k) for j in range(k, n))
-#     term3 = 2 * sum3 / (k * (n - k))
-
-#     return term1 + term2 - term3
-
-
-
 def compute_Wnk(df, k):
     """Compute W_n_k as per the control chart method."""
     
@@ -297,6 +131,7 @@ def Calculate_Change_Point(data, h_n_p):
     Z_list = []
     lim_list = [0,0,0]
 
+    # Limit found numerically
     lim_list.extend(1.3 + 0.59*np.log(np.arange(1,len(data.T)-2, 1)))
     
 
@@ -334,12 +169,20 @@ def Calculate_Multivariate_Change_Point(full_data, lim = 3.2):
     z_statistics, lim_list = Calculate_Change_Point(full_data, limit)
 
     
-    # plt.style.use('science')
+
+    
     # plt.figure()
+    # plt.style.use('science')
+    # plt.rc('font', size=14)
+    # plt.rc('axes', titlesize=18)
+    # plt.rc('axes', labelsize=18)
+    # plt.rc('xtick', labelsize=18)
+    # plt.rc('ytick', labelsize=18)
+    # plt.rc('legend', fontsize=18)
     # plt.grid()
     # plt.plot(z_statistics, label = '$Z_{max,n}$')
-    # plt.plot(lim_list, label = 'Control limit ($h_{n,p}$)', c = 'orange')
-    # plt.xlabel('Observations [-]')
+    # plt.plot(lim_list, label = 'Limit ($h$)', c = 'orange')
+    # plt.xlabel('n [-]')
     # plt.ylabel('$Z_{max,n}$')
     # plt.legend()
     

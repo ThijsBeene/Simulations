@@ -168,11 +168,7 @@ def simulated_annealing_prune(mst_edges, num_nodes, all_edges, corr_matrix, data
             temp_edges.remove(edge_to_remove)
             
             F_list.append(best_score)
-            # print(best_score)
-
-            
-            
-
+   
             # Check if degrees are valid (or use full connectivity check)
             degree = [0] * num_nodes
             for x, y, _ in temp_edges:
@@ -358,7 +354,7 @@ def label_nodes_by_cluster_list(mst_edges, num_nodes):
 
 
     
-def apply_DBSCAN(df2, data_real, T_list, cluster_matrix= None):
+def find_groups(df2, data_real, T_list, cluster_matrix= None):
     
     
     n = df2.shape[0]

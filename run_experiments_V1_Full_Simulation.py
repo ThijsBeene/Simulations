@@ -16,7 +16,7 @@ import numpy as np
 import time
 import matplotlib.pyplot as plt
 import random
-from Generate_SPC_MEZCAL_Data_V1 import Load_Data, generate_multivariate_data, apply_fixed_clustering, apply_DBSCAN
+from Generate_SPC_MEZCAL_Data_V1 import Load_Data, generate_multivariate_data, apply_fixed_clustering, find_groups
 import math
 import scienceplots
 
@@ -48,16 +48,16 @@ def get_Q_results(full_data, filepath, filename_Q, ARL_list_Q):
     ARL_list_Q.append(count)
 
     # Store csv with run results
-    # write_to_csv(result_Q_chart.T, filepath, filename_Q)
+    # # write_to_csv(result_Q_chart.T, filepath, filename_Q)
     
-    # plt.figure()
-    plt.style.use('science')
-    plt.grid()  
-    # plt.plot(result_SSEWMA[val2]['Norm'], label = '$||M||^2$')
-    # plt.plot(result_SSEWMA[val2]['Limit'], label = 'Limit (h)')
-    plt.xlabel('n [-]')
-    # plt.ylabel('$||M||^2$')
-    # plt.legend()
+    # # plt.figure()
+    # plt.style.use('science')
+    # plt.grid()  
+    # # plt.plot(result_SSEWMA[val2]['Norm'], label = '$||M||^2$')
+    # # plt.plot(result_SSEWMA[val2]['Limit'], label = 'Limit (h)')
+    # plt.xlabel('n [-]')
+    # # plt.ylabel('$||M||^2$')
+    # # plt.legend()
     
     plt.figure()
     plt.grid()
@@ -68,9 +68,9 @@ def get_Q_results(full_data, filepath, filename_Q, ARL_list_Q):
     plt.rc('ytick', labelsize=18)
     plt.rc('legend', fontsize=18)
     plt.rc('figure', titlesize=16)
-    plt.plot(np.arange(1,31,1), result_Q_chart[res]['Observation'], label = r"$x_n$")
-    plt.plot(np.arange(1,31,1),result_Q_chart[res]['LCL'], c = 'r', label = 'UCL/LCL')
-    plt.plot(np.arange(1,31,1),result_Q_chart[res]['UCL'], c = 'r')
+    plt.plot(np.arange(0,30,1), result_Q_chart[res]['Observation'], label = r"$x_n$")
+    plt.plot(np.arange(0,30,1),result_Q_chart[res]['LCL'], c = 'r', label = 'UCL/LCL')
+    plt.plot(np.arange(0,30,1),result_Q_chart[res]['UCL'], c = 'r')
     plt.legend()
     plt.ylabel(r"$x_n$ [-]")
     plt.xlabel('n [-]')
@@ -299,7 +299,7 @@ if __name__ == "__main__":
     
     cluster_matrix = np.zeros((97,run_length+1))
     
-    for shift_size in np.arange(1, 6, 1):
+    for shift_size in np.arange(0, 16, 1):
         Shift_Size = shift_size
         
         
@@ -360,7 +360,7 @@ if __name__ == "__main__":
             
                 
                 # Recluster with DBSCAN based on current data set
-                clustered_data_DBSCAN, cluster_data_noise, cluster_size_counts_dict, T_list = apply_DBSCAN(current_data, data_real, T_list, cluster_matrix)
+                clustered_data_DBSCAN, cluster_data_noise, cluster_size_counts_dict, T_list = find_groups(current_data, data_real, T_list, cluster_matrix)
                 
                 
                 # Determine the SSEWMA and Q results based on the reclustered data

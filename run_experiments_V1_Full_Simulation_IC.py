@@ -19,7 +19,7 @@ import random
 from Generate_SPC_MEZCAL_Data_V1 import Load_Data
 from Generate_SPC_MEZCAL_Data_V1 import generate_multivariate_data
 from Generate_SPC_MEZCAL_Data_V1 import apply_fixed_clustering
-from Generate_SPC_MEZCAL_Data_V1 import apply_DBSCAN
+from Generate_SPC_MEZCAL_Data_V1 import find_groups
 import math
 import scienceplots
 
@@ -41,11 +41,6 @@ def get_Q_results(full_data, filepath, filename_Q, ARL_list_Q, alpha):
                 if index < count:
                     count = index 
                
-  
-    # plt.plot(value.T["UCL"])
-    # plt.plot(value.T["LCL"])
-    # plt.plot(value.T["Observation"])
-
     # ARL_OOC
     ARL_list_Q.append(count)
     write_to_csv(result_Q_chart.T, filepath, filename_Q)
@@ -70,11 +65,7 @@ def get_SSEWMA_results(cluster_data, full_data, filepath, filename_SSEWMA, ARL_l
             if state == 'OOC':
                 if index < count_SSEWMA:
                     count_SSEWMA = index
-        
-                
 
-    
-    
 
     ARL_list_SSEWMA.append(count_SSEWMA)
     write_to_csv(result_SSEWMA.T, filepath, filename_SSEWMA)
@@ -98,26 +89,12 @@ def get_combined_results(count_combi, count_combi_Q, full_data, filepath, filena
         result_Q_chart = Q_Chart.Calculate_Q_Chart_UCL_LCL(noise_clusters[-1], 1)
     else:
         result_Q_chart = pd.DataFrame()
-    
-  
-    
-  
-    # for key,value in result_Q_chart.items():
-    #     for index,state in enumerate(value.T["States"]):
-    #         if state == 'OOC':
-    #             if index < count_combi_Q:
-    #                 count_combi_Q = index
-              
- 
+
         
     for key,value in result_SSEWMA.items():
         if value.T["state"][-1] == 'OOC':
             count_combi = observations
-               
-            
-    # if count_combi > count_combi:
-    #     count_combi = count_combi_Q
-        
+
     
 
     return result_SSEWMA, result_Q_chart, count_combi
@@ -210,26 +187,26 @@ if __name__ == "__main__":
         count_combi = np.inf
         count_combi_Q = np.inf
         
-        # for current_run_length in range(2,run_length,1):
-        #     if count_combi != np.inf:
-        #         break
+        for current_run_length in range(2,run_length,1):
+            if count_combi != np.inf:
+                break
 
-        #     current_data = full_data.copy().iloc[:,:current_run_length+1]
+            current_data = full_data.copy().iloc[:,:current_run_length+1]
     
           
-        #     clustered_data_DBSCAN, cluster_data_noise, noise_cluster_number, total_cluster, biggest_cluster, cluster_matrix, T_list = apply_DBSCAN(current_data.T, DBSCAN_threshold, full_data,T_list, cluster_matrix)
-        #     result_SSEWMA, result_Q_chart, count_combi = get_combined_results(count_combi, count_combi_Q, current_data, filepath, filename_Combi_Q, ARL_list_Combi, sim, clustered_data_DBSCAN, cluster_data_noise, filename_Combi_SSEWMA, count_Q_com, count_SSEWMA_com)
+            clustered_data_DBSCAN, cluster_data_noise, noise_cluster_number, total_cluster, biggest_cluster, cluster_matrix, T_list = find_groups(current_data.T, DBSCAN_threshold, full_data,T_list, cluster_matrix)
+            result_SSEWMA, result_Q_chart, count_combi = get_combined_results(count_combi, count_combi_Q, current_data, filepath, filename_Combi_Q, ARL_list_Combi, sim, clustered_data_DBSCAN, cluster_data_noise, filename_Combi_SSEWMA, count_Q_com, count_SSEWMA_com)
    
            
-        #     tot_noise_cluster_number.append(noise_cluster_number)
-        #     tot_total_cluster_list.append(total_cluster)
-        #     tot_biggest_cluster_list.append(biggest_cluster)
+            tot_noise_cluster_number.append(noise_cluster_number)
+            tot_total_cluster_list.append(total_cluster)
+            tot_biggest_cluster_list.append(biggest_cluster)
             
   
         # # ARL_OOC
         
         # Write results to csv for combination chart
-        # write_to_csv(result_SSEWMA.T, filepath, filename_Combi_SSEWMA)
+        write_to_csv(result_SSEWMA.T, filepath, filename_Combi_SSEWMA)
         write_to_csv(result_Q_chart.T, filepath, filename_Combi_Q)
         ARL_list_Combi.append(count_combi)
       
