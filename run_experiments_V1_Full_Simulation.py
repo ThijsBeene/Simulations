@@ -48,21 +48,21 @@ def get_Q_results(full_data, filepath, filename_Q, ARL_list_Q):
     ARL_list_Q.append(count)
 
 
-    plt.figure()
-    plt.grid()
-    plt.rc('font', size=14)
-    plt.rc('axes', titlesize=18)
-    plt.rc('axes', labelsize=18)
-    plt.rc('xtick', labelsize=18)
-    plt.rc('ytick', labelsize=18)
-    plt.rc('legend', fontsize=18)
-    plt.rc('figure', titlesize=16)
-    plt.plot(np.arange(0,30,1), result_Q_chart[res]['Observation'], label = r"$x_n$")
-    plt.plot(np.arange(0,30,1),result_Q_chart[res]['LCL'], c = 'r', label = 'UCL/LCL')
-    plt.plot(np.arange(0,30,1),result_Q_chart[res]['UCL'], c = 'r')
-    plt.legend()
-    plt.ylabel(r"$x_n$ [-]")
-    plt.xlabel('n [-]')
+    # plt.figure()
+    # plt.grid()
+    # plt.rc('font', size=14)
+    # plt.rc('axes', titlesize=18)
+    # plt.rc('axes', labelsize=18)
+    # plt.rc('xtick', labelsize=18)
+    # plt.rc('ytick', labelsize=18)
+    # plt.rc('legend', fontsize=18)
+    # plt.rc('figure', titlesize=16)
+    # plt.plot(np.arange(0,30,1), result_Q_chart[res]['Observation'], label = r"$x_n$")
+    # plt.plot(np.arange(0,30,1),result_Q_chart[res]['LCL'], c = 'r', label = 'UCL/LCL')
+    # plt.plot(np.arange(0,30,1),result_Q_chart[res]['UCL'], c = 'r')
+    # plt.legend()
+    # plt.ylabel(r"$x_n$ [-]")
+    # plt.xlabel('n [-]')
        
     
    
@@ -229,21 +229,7 @@ def get_CP_results(full_data, filepath, filename_CP, ARL_list_CP):
     
     return result_CP
  
-def covariance_to_correlation(cov_matrix):
-    """Convert covariance matrix to correlation matrix."""
-    # Calculate the standard deviations
-    std_dev = np.sqrt(np.diag(cov_matrix))
-    
-    # Outer product of standard deviations
-    outer_std_dev = np.outer(std_dev, std_dev)
-    
-    # Divide covariance matrix by outer product of standard deviations
-    corr_matrix = cov_matrix / outer_std_dev
-    
-    # Set diagonal to 1
-    np.fill_diagonal(corr_matrix, 1)
-    
-    return corr_matrix   
+
 
 if __name__ == "__main__":
     
@@ -288,7 +274,7 @@ if __name__ == "__main__":
     
     cluster_matrix = np.zeros((97,run_length+1))
     
-    for shift_size in np.arange(0, 16, 1):
+    for shift_size in np.arange(0, 6, 1):
         Shift_Size = shift_size
         
         

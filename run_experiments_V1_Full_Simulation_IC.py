@@ -105,12 +105,9 @@ def get_CP_results(full_data, filepath, filename_CP, ARL_list_CP):
     process_readings = len(full_data)
     
 
-    # Apply MCPD
-    
+    # Apply HC chart
     result_CP = Multivariate_Change_Point_Approach.Calculate_Multivariate_Change_Point(full_data)
-    
-    
-
+ 
     count_CP = np.inf
     
     for ii, val in enumerate(list(result_CP['state'])):
@@ -171,13 +168,14 @@ if __name__ == "__main__":
      
 
         # Generate a random process reading for OOC
-        full_data = Generate_SPC_MEZCAL_Data_V1.generate_multivariate_data(cov, data_real, run_length)
+        full_data = Generate_SPC_MEZCAL_Data_V1.generate_multivariate_data(data_real, run_length).T
         cluster_data_SSEWMA = apply_fixed_clustering(full_data, sim, data_real)
       
         
  
-        result_Q_chart = get_Q_results(full_data.iloc[:,:].copy(), filepath, filename_Q, ARL_list_Q, 0.0005378341924398626)
+        result_Q_chart = get_Q_results(full_data.copy(), filepath, filename_Q, ARL_list_Q, 0.0005378341924398626)
         result_SSEWMA_2_L, count_SSEWMA = get_SSEWMA_results(cluster_data_SSEWMA.copy(), full_data.copy(), filepath, filename_SSEWMA, ARL_list_SSEWMA, 12.576804)
+        # Limit HC results to fasten calculations
         results_CP = get_CP_results(full_data.iloc[:,:50].copy(), filepath, filename_CP, ARL_list_CP)
         
            
@@ -189,19 +187,17 @@ if __name__ == "__main__":
         count_combi_Q = np.inf
         
         for current_run_length in range(2,run_length,1):
+            print(current_run_length)
             if count_combi != np.inf:
                 break
 
             current_data = full_data.copy().iloc[:,:current_run_length+1]
     
           
-            clustered_data_DBSCAN, cluster_data_noise, noise_cluster_number, total_cluster, biggest_cluster, cluster_matrix, T_list = find_groups(current_data.T, DBSCAN_threshold, full_data,T_list, cluster_matrix)
+            clustered_data_DBSCAN, cluster_data_noise, cluster_size_counts_dict, T_list = find_groups(current_data.T, data_real, T_list, cluster_matrix)
             result_SSEWMA, result_Q_chart, count_combi = get_combined_results(count_combi, count_combi_Q, current_data, filepath, filename_Combi_Q, ARL_list_Combi, sim, clustered_data_DBSCAN, cluster_data_noise, filename_Combi_SSEWMA, count_Q_com, count_SSEWMA_com)
    
            
-            tot_noise_cluster_number.append(noise_cluster_number)
-            tot_total_cluster_list.append(total_cluster)
-            tot_biggest_cluster_list.append(biggest_cluster)
             
   
         # # ARL_OOC

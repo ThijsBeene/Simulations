@@ -17,6 +17,9 @@ import time
 from collections import deque
 from scipy.linalg import qr, solve_triangular
 
+
+from scipy.stats import sem, t
+
 def label_nodes_by_cluster_list(mst_edges, num_nodes):
     import networkx as nx
 
@@ -97,19 +100,10 @@ def calculate_evidence(X, N0=0):
 
 
     # Sample covariance matrix
-    S = np.cov(X[:-1, :].T, bias=True)
-
-    # Prior covariance: identity matrix + small noise
-    Sigma_prior = np.eye(d) / d + np.random.rand(d, d) * 1e-5
-
-    # Shrinkage intensity
-    lambda_ = N0 / (N0 + n)
-
-    # MAP covariance estimate
-    Sigma_map = lambda_ * Sigma_prior + (1 - lambda_) * S
+    S = np.cov(X[:-1, :].T)
 
     # Use slogdet for numerical stability
-    det1 = max(10e-10,det(Sigma_map))
+    det1 = max(10e-10,det(S))
     logdet = np.log(det1)
 
     # Compute log entropy of the Gaussian
@@ -232,14 +226,9 @@ def greedy_edge_removal(mst_edges, num_nodes, all_edges, corr_matrix, data, max_
         candidate_remove_edges = sorted(current_edges, key=lambda x: -x[2])
         candidate_add_edges = sorted([e for e in all_edges if e not in current_edges], key=lambda x: -x[2])[:20]
         
-        #print(candidate_add_edges)
-        #print(candidate_remove_edges)
-        
         
         improved = False
         
-        # Sampling:
-        #for edge_to_remove, edge_to_add in zip(candidate_remove_edges, candidate_add_edges):
             
         for edge_to_remove in candidate_remove_edges:
             for edge_to_add in candidate_add_edges:
@@ -447,7 +436,6 @@ def label_nodes_by_cluster_list(mst_edges, num_nodes):
 
 
 
-plt.style.use('science')
 
 def visualize_mst(n, mst_edges):
     G = nx.Graph()
@@ -501,26 +489,14 @@ def generate_multivariate_data(data, run_length):
 
 
 path = r'C:\Users\tbeene\Desktop\Data\DUT\DUT_Simple.csv'
-df_DUT = pd.read_csv(path)
-
-# Drop columns where all values are NaN
-df_DUT = df_DUT.dropna(axis=1, how='all')
-
-# Replace remaining NaN values with 0
-df_DUT = df_DUT.fillna(0)
 
 
 df1, cov = Load_Data(50)
 
 df = generate_multivariate_data(df1, 50)
-# df = df_DUT
-# cov = df_DUT.corr()
 
 
-#plt.style.use('science')
-
-corr_matrix = df.corr().replace(np.nan, 0) #.T.iloc[:,:-1].T
-#corr_matrix = np.cov(df.T.replace(np.nan, 0))
+corr_matrix = df.corr().replace(np.nan, 0) 
 d = len(df.T)
 n = len(df)
 
@@ -530,25 +506,15 @@ distance_matrix = corr_matrix.values
 
 mst, all_edges = max_spanning_tree_edges(np.abs(distance_matrix))
 
-# # pruned_mst, entropy_list, U_list, F_list = recursively_prune_edges(mst, len(distance_matrix)) 
 
 
 
 
 
-
-
-
-
-
-
-
-
-
-from scipy.stats import sem, t
+# Iterate over multiple runs
 
 # Set number of runs
-n_runs = 10
+n_runs = 1
 
 # Storage for each algorithm
 scores_sim_all = []
@@ -593,14 +559,13 @@ plt.rc('xtick', labelsize=18)
 plt.rc('ytick', labelsize=18)
 plt.rc('legend', fontsize=18)
 plt.rc('figure', titlesize=16)
+
+# Plot results
 plt.plot(time_axis, mean_sim, label='Simulated Annealing')
 plt.fill_between(time_axis, mean_sim - conf_sim, mean_sim + conf_sim, alpha=0.3)
 
 plt.plot(time_axis, mean_tabu, label='Tabu Search')
 plt.fill_between(time_axis, mean_tabu - conf_tabu, mean_tabu + conf_tabu, alpha=0.3)
-
-# plt.plot(time_axis, mean_swap, label='Swap Search')
-# plt.fill_between(time_axis, mean_swap - conf_swap, mean_swap + conf_swap, alpha=0.3)
 
 plt.plot(time_listgreed, scoregreed, label='Greedy Search', color='black')
 
@@ -617,54 +582,7 @@ plt.show()
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# for ii in range(2):
-#     pruned_mst1, scoregreed, time_listgreed =  greedy_edge_removal(mst, len(distance_matrix), all_edges, distance_matrix, df)
-#     pruned_mst2, scoresim, time_listsim =  simulated_annealing_prune(mst, len(distance_matrix), all_edges, distance_matrix, df)
-#     pruned_mst, scoretabu, time_listtabu =  tabu_search_prune(mst, len(distance_matrix), all_edges, distance_matrix, df)
-    
-    
-    
-#     print(label_nodes_by_cluster_list(pruned_mst, len(distance_matrix)))
-    
-#     labelsDBSCAN = label_nodes_by_cluster_list(pruned_mst, len(distance_matrix))
-    
-    
-#     # plt.plot(entropy_list, label = 'S')
-#     # plt.plot(U_list, label = 'U')
-    
-#     plt.plot(time_listsim, scoresim, label = 'Simulated annealing')
-#     plt.plot(time_listtabu, scoretabu, label = 'Tabu search')
-
-# plt.plot(time_listgreed, scoregreed,  label = 'Greedy search')
-# plt.legend()
-# plt.ylabel('$\sum |C_g|$ [-]')
-# plt.xlabel('Time [s]')
-# plt.grid()
+# Plot heatmap
 
 # plt.style.use('science')
 node_color_map = visualize_mst(len(df.T), pruned_mst)
