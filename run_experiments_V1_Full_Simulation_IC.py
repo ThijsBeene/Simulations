@@ -11,7 +11,7 @@ import pandas as pd
 import SSMEWMA
 import Q_Chart
 import Generate_SPC_MEZCAL_Data_V1
-import Multivariate_Change_Point_Approach
+import HC_Chart
 import numpy as np
 import time
 import matplotlib.pyplot as plt
@@ -106,7 +106,7 @@ def get_CP_results(full_data, filepath, filename_CP, ARL_list_CP):
     
 
     # Apply HC chart
-    result_CP = Multivariate_Change_Point_Approach.Calculate_Multivariate_Change_Point(full_data)
+    result_CP = HC_Chart.Calculate_Multivariate_Change_Point(full_data)
  
     count_CP = np.inf
     

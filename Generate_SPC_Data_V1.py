@@ -10,8 +10,7 @@ from numpy.random import multivariate_normal
 import random
 from collections import Counter
 import math 
-from scipy.special import multigammaln
-from numpy.linalg import slogdet, det
+from numpy.linalg import slogdet
 import warnings
 warnings.filterwarnings('ignore')
 from collections import deque
@@ -69,7 +68,6 @@ def score_found_grouping(labels, data):
     """
     
     F = 0.0
-    Lambda = 0.25
 
     # Convert pandas DataFrame to NumPy array if needed
     if hasattr(data, 'values'):
@@ -93,37 +91,18 @@ def score_found_grouping(labels, data):
     return F
 
 
-
-def calculate_evidence(X, N0=0):
-    """
-    Approximate the log marginal likelihood (model evidence) for a multivariate Gaussian
-    using a MAP covariance estimator with shrinkage toward the identity matrix.
-
-    Parameters:
-    - X: (n, d) data matrix
-    - N0: prior strength (controls shrinkage intensity)
-
-    Returns:
-    - Approximate log marginal likelihood (per dimension)
-    """
+def calculate_evidence(X, N0=1):
     n, d = X.shape
 
-
     # Sample covariance matrix
-    S = np.cov(X[:-1, :].T, bias=True)
+    S = np.cov(X[:-1, :].T)
 
-    # Prior covariance: identity matrix + small noise
-    Sigma_prior = np.eye(d) / d + np.random.rand(d, d) * 1e-5
-
-    # Shrinkage intensity
-    lambda_ = N0 / (N0 + n)
-
-    # MAP covariance estimate
-    Sigma_map = lambda_ * Sigma_prior + (1 - lambda_) * S
- 
     # Use slogdet for numerical stability
-    det1 = max(10e-10,det(Sigma_map))
-    logdet = np.log(det1)
+    sign, logdet = slogdet(S)
+    
+    # Check for non positive definite matrix
+    if sign <= 0:
+        logdet = 0
 
     # Compute log entropy of the Gaussian
     log_entropy = -0.5 * (d * np.log(2 * np.pi) + logdet)
@@ -179,7 +158,6 @@ def simulated_annealing_prune(mst_edges, num_nodes, all_edges, corr_matrix, data
                 return temp_edges
         return edges # fallback: return original if no good neighbor found
 
-    sorted_edges = sorted(mst_edges, key=lambda x: -x[2])
     current_edges = mst_edges.copy()
     best_edges = current_edges.copy()
 
@@ -191,10 +169,8 @@ def simulated_annealing_prune(mst_edges, num_nodes, all_edges, corr_matrix, data
     
     
 
-    entropy_list = []
-    U_list = []
     F_list = []
-    time_list = []
+
     
     F_list.append(best_score)
   
@@ -214,14 +190,12 @@ def simulated_annealing_prune(mst_edges, num_nodes, all_edges, corr_matrix, data
             current_edges = neighbor_edges
             current_score = neighbor_score
 
-            labels = label_nodes_by_cluster_list(current_edges, num_nodes)
-           
-      
+       
 
             if current_score < best_score:
                 best_score = current_score
                 best_edges = current_edges.copy()
-                best_T = T
+
                 
                 
 
@@ -334,52 +308,7 @@ def max_spanning_tree_edges(corr_matrix, labels=None):
 
 
 
-def label_nodes_by_cluster_list(mst_edges, num_nodes):
-    import networkx as nx
-
-    G = nx.Graph()
-    G.add_nodes_from(range(num_nodes))
-    G.add_edges_from([(u, v) for u, v, _ in mst_edges])
-
-    clusters = list(nx.connected_components(G))
-    labels = [None] * num_nodes
-    
- 
-
-    for cluster_id, component in enumerate(clusters):
-        for node in component:
-            labels[node] = cluster_id
-
-    return labels
-
-
-    
-def find_groups(df2, data_real, T_list, cluster_matrix= None):
-    
-    
-    n = df2.shape[0]
-    k = df2.shape[1]
-    
-    
-    
-
-
-    corr_matrix = df2.copy().corr().replace(np.nan, 0) 
-    N0 = 0.1
-    
-    Corr_0 = np.identity(k) + 10e-6 * np.random.rand(k,k)
-    distance_matrix = corr_matrix.values 
-
-    # Get MST
-    mst, all_edges = max_spanning_tree_edges(np.abs(distance_matrix))
-    pruned_mst, F_list =  simulated_annealing_prune(mst, len(distance_matrix), all_edges, distance_matrix, df2.copy())
-    
-    # Get labels
-    labelsDBSCAN = label_nodes_by_cluster_list(pruned_mst, k)
-
- 
-
-    df2 = df2.T
+def get_cluster_dict(df2, labelsDBSCAN):
     cluster_dict_filter = {}
     noise_clusters = {}
     noise_clusters[-1] = []
@@ -400,8 +329,6 @@ def find_groups(df2, data_real, T_list, cluster_matrix= None):
             noise_clusters[cluster].append(value)
             
         ii += 1
-        
-    
 
     # Convert cluster data to pandas df
     for cluster, value in cluster_dict_filter.items():
@@ -412,15 +339,33 @@ def find_groups(df2, data_real, T_list, cluster_matrix= None):
         cluster_df = pd.DataFrame(value)
         noise_clusters[cluster] = cluster_df
         
-  
+    return cluster_dict_filter, noise_clusters
+    
+def find_groups(df2, data_real, T_list, cluster_matrix= None):
+    
+    
+    n = df2.shape[0]
+    k = df2.shape[1]
+    
+    corr_matrix = df2.copy().corr().replace(np.nan, 0) 
+    distance_matrix = corr_matrix.values 
+
+    # Get MST
+    mst, all_edges = max_spanning_tree_edges(np.abs(distance_matrix))
+    pruned_mst, F_list =  simulated_annealing_prune(mst, len(distance_matrix), all_edges, distance_matrix, df2.copy())
+    
+    # Get labels
+    labelsDBSCAN = label_nodes_by_cluster_list(pruned_mst, k)
+    df2 = df2.T
+    
+    # Turn labels into dicts containing data frames of sensor groups
+    cluster_dict_filter, noise_clusters = get_cluster_dict(df2, labelsDBSCAN)
     
     # Calculate cluster statistics
-    key_max = 0
     SSMEWMA_Cluster_Sum = 0
-    count_clusters = 0
     
+    # Fill matrix with values for plotting
     for cluster_key, cluster in cluster_dict_filter.copy().items():
-
         cluster_matrix[len(cluster)][n] += len(cluster)
         SSMEWMA_Cluster_Sum += len(cluster)
                 
@@ -433,7 +378,6 @@ def find_groups(df2, data_real, T_list, cluster_matrix= None):
 def apply_fixed_clustering(data, cluster_size, data_real):
     """This function returns a list of random predefined clusters based on the cluster size input"""
     
-    df_real = pd.DataFrame(data_real)
     df2 = pd.DataFrame.from_dict(data)
     keys = df2.T.keys()
 

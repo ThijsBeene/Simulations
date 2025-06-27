@@ -8,18 +8,12 @@ Created on Mon Dec 16 09:19:22 2024
 from scipy.linalg import qr, solve_triangular
 import numpy as np 
 import pandas as pd 
-from scipy.special import stdtr # Inverse CDF of Student's t-distribution 
 from scipy.stats import norm 
 from numpy import linalg as LA 
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
 from scipy.stats import norm, t
-from numpy.linalg import cholesky, inv
 
 
-
-# ---- STEP 1: LOAD DATA ----
+# Load data
 def generate_multivariate_data(cov, data, run_length):
     """ Generate synthetic multivariate normal data. """
     means = np.mean(data, axis=0)
@@ -29,7 +23,7 @@ def generate_multivariate_data(cov, data, run_length):
 
 def compute_recursive_residuals(X): 
     """ 
-    Compute the recursive residuals matrix R using QR factorization, following the approach in Hawkins (2007). 
+    Compute the recursive residuals matrix R following the approach in Hawkins 
     """ 
     X = np.array(X, dtype=np.float64)
     n, p = X.shape 
@@ -54,26 +48,14 @@ def compute_recursive_residuals(X):
                 h_ij = 0
             # Normalize recursive residual 
             R[i, j-1] = residual / np.sqrt(1 + h_ij) 
-            
+          
+    # Small mistake in Hawkins paper, if adding this line results match exactly with Table 
     # R[5][4] = -0.002
     return R 
 
 def transform_to_U(R):
     """
-    Transform a matrix of recursive residual t-statistics into independent standard normal variates.
-    
-    For each valid element R[i, j] (with i > j), we assume the degrees of freedom is:
-         df = i - j - 1
-    and define the corresponding standard normal variate as:
-         u = norm.ppf( t.cdf(R[i,j], df) ).
-    
-    Parameters:
-        R (numpy.ndarray): 2D array of recursive residual t-statistics.
-                           (Entries with i <= j are not defined.)
-    
-    Returns:
-        U (numpy.ndarray): 2D array of the same shape as R containing the transformed
-                           standard normal variates.
+    Compute studentized residuals 
     """
     U = np.full(R.shape, np.nan)
     n, p = R.shape
@@ -87,12 +69,11 @@ def transform_to_U(R):
                 # Compute the cumulative probability of the t-statistic
                 p_val = t.cdf(t_n_i, df)
                 # Transform to the corresponding quantile of the standard normal
-                U[i, j] = norm.ppf(p_val)
-               
+                U[i, j] = norm.ppf(p_val)   
     return U
 
 def calc_M(U, Lambda):
-    """ Compute EWMA statistic. """
+    """ Compute MEWMA statistic. """
     U[np.isnan(U)] = 0
     o, p = U.shape
     M_list = np.zeros_like(U)
@@ -107,24 +88,16 @@ def calc_T2_and_limits(M, Lambda, h):
     lim_list = []
     o, p = M.shape
 
-
     for n in range(0, len(M)):
         if n >= p+1:
             T2 = np.linalg.norm(M[n])**2
             T2_list.append(T2)
-
-           
             limit = (Lambda * (1 - (1 - Lambda)**(2 * (n - p + 1))) / (2 - Lambda)) * h
             lim_list.append(limit)
         else:
             T2_list.append(0)
-        
-            
-
             lim_list.append(0)
 
-
-    
     return T2_list, lim_list
 
 def Calculate_SSEWMA_Norm_Lim(cluster_data, h_type=0):
@@ -132,37 +105,25 @@ def Calculate_SSEWMA_Norm_Lim(cluster_data, h_type=0):
     index = 0
     result_df = pd.DataFrame()
     
+    # Number of groups
     k = len(cluster_data)
 
- 
-    
     for key, cluster in cluster_data.items():
         
         cluster_trans = cluster.copy().T
-        columns = cluster.columns
        
-        
-        T2_list_clusters = []
-        lim_list_clusters = []
-
-
+        # Number of sensors in a group
         n = len(cluster)
-        i = len(cluster.columns)
-        
-    
         Lambda = 0.25
         
-   
-        
-          
+        # Determine appropriate h value resulting in an ARL ic of 25 observations
         if k - 1 > 48:
-            
             k = 48
-            
         if n - 2 > 18:
             h = 100
         else:
             # Store in TXT in the future
+            # These are numerically found values for h depending on number of groups and sensors in a group
             h = h_type*[[5.427072890045065, 6.966775383254869, 7.532793465730381, 8.469547675176265, 8.919805303010648, 9.258898379741444, 9.599875881884447, 9.819860892134198, 9.90563017440815, 10.131457025675749, 10.446073904004479, 10.59677686828109, 10.779150226867197, 10.896698712145685, 11.015661905808114, 11.088717257964642, 11.228450983506528, 11.316706926898446, 11.453532793305452, 11.59975235699077, 11.748227111254764, 11.776020563453159, 11.863607723062483, 11.971883960777168, 12.081320390118872, 12.242165927948644, 12.351054903968791, 12.362068617097158, 12.42941392685308, 12.505121023640458, 12.595249793194291, 12.807261289313708, 12.923143366493036, 12.979468433629862, 13.024631075774813, 13.069649297167295, 13.085188673449096, 13.16683291461402, 13.189153745405953, 13.219045237197577, 13.291864082180972, 13.291864082181778, 13.34363861951232, 13.53541980736775, 13.623930834339383, 13.666963677629763, 13.703067838883136, 13.741216576494956, 13.77166312458758],
               [7.053243036270425, 9.033801814549703, 10.091952921417182, 10.786901341956188, 11.294255398630767, 11.685841574855644, 11.955117454261092, 12.212103067735914, 12.424431486081868, 12.594929080490205, 12.893429121203283, 13.139920558148264, 13.279913593934154, 13.514537917190008, 13.60293387834689, 13.71291029567086, 13.799021809240365, 13.880067867294073, 14.011103639238131, 14.089825203946848, 14.156559172525787, 14.313813310028014, 14.38743915394184, 14.481608225123233, 14.65943785777412, 14.749806590346779, 14.82883348064973, 14.886288111179795, 15.003356390639077, 15.096055201898736, 15.197357374104813, 15.248034895758824, 15.396919578028845, 15.463285732598896, 15.61637525786362, 15.791841784405717, 15.90080252435539, 15.968657942896716, 16.08484410270704, 16.110033959742196, 16.153836949152627, 16.20189453377212, 16.45401947866729, 16.540735395631575, 16.607377411346732, 16.644596592837495, 16.808137558778952, 16.89649380064578, 16.94202721897458],
               [8.422517912489761, 10.558956648955677, 11.800987171302786, 12.391947261570149, 12.936408447755472, 13.497210907077985, 13.934650336975347, 14.167574493104778, 14.590042501838937, 14.82035913645929, 14.963159211994652, 15.128367736543474, 15.327471578611743, 15.540647760548563, 15.657139393238571, 15.924932111040027, 16.015638646810622, 16.108305921819866, 16.286439704864385, 16.41493204094397, 16.575333631052196, 16.649804803707866, 16.766935865732783, 16.815013736589062, 16.847986337798936, 16.909873360781088, 16.99096137821702, 17.126451991613873, 17.263134157075825, 17.334113555486375, 17.41852062429698, 17.491944450075053, 17.615947699169343, 17.684362668588825, 17.82857342775224, 17.888993675826658, 18.035089510986364, 18.08106778002383, 18.11738526691074, 18.231755341479673, 18.30327806368311, 18.505237035229797, 18.588697451323455, 18.648705461625266, 18.778375917545567, 18.881782578226947, 18.931753173447973, 19.11307414515445, 19.217835469504216],
@@ -183,20 +144,16 @@ def Calculate_SSEWMA_Norm_Lim(cluster_data, h_type=0):
               [23.486189721418572, 31.3076212452119, 33.30500537651575, 34.9401765236671, 36.67617789428284, 37.331528701306695, 37.726911128444534, 38.21567277202262, 39.090972208547534, 39.19139099245045, 39.51360813836983, 40.11321846106087, 40.309746589925254, 40.592337264725614, 40.78586557882447, 41.09441866170204, 41.24886081354236, 41.36318560300545, 41.49678154245678, 41.66200839494614, 41.778846269818885, 41.82604672953377, 42.06281186293586, 42.1587210996627, 42.483453658429426, 42.60166379148514, 42.7773672906315, 42.92377050761199, 43.14269985033091, 43.3159361360473, 43.458033111279505, 43.840479253975346, 43.98351685925707, 44.373973180409564, 44.471965761473015, 44.69886237790324, 44.77857520514499, 44.98412737072728, 45.17695675525894, 45.24236331325753, 45.32609632457729, 45.82311136403052, 46.017853905347195, 46.30298129373725, 46.4482018496332, 46.63128964942181, 47.25830087690146, 47.9327723618662, 48.25108684739017],
               [24.521148868747538, 33.795660823124976, 35.57689433673366, 36.97109040390552, 37.91564503949121, 38.83154731504673, 39.260675702239745, 39.95279406865228, 40.412591620342624, 40.537305330084735, 41.10351703672898, 41.63441833283143, 42.14013255408824, 42.21226616101486, 42.71588211826394, 43.01993716723328, 43.199643223488636, 43.28185040795113, 43.47970637978017, 43.67911264675616, 43.71152948479257, 43.823325692163486, 43.88422242260153, 44.03551210171214, 44.258882296798205, 44.479314454456066, 44.72363245663782, 44.765958030821636, 44.88086069459008, 44.950858972240354, 45.332914321546504, 45.768705104757856, 46.52720062506343, 46.647350927249924, 46.78643944004222, 46.89838060662365, 46.961138514052074, 47.164751683015425, 47.178290426497064, 47.22830162463378, 47.37124497500117, 47.71200274000866, 48.275099411791274, 48.55108074423691, 48.75622989235825, 49.339533949914994, 49.60858472497904, 50.14898307476087, 50.325858640531216]
               ][n-2][k-1]
-        
-    
-    
         if k == 48:
             h = h_type
         
-        
+        # Calculate matrices
         R = compute_recursive_residuals(cluster_trans)
         U = transform_to_U(R)
         M = calc_M(U, Lambda)
         T2_list, lim_list = calc_T2_and_limits(M, Lambda, h)
         
  
-
         # Check if UCL has been exceeded
         count = 0
         state = []
@@ -208,13 +165,10 @@ def Calculate_SSEWMA_Norm_Lim(cluster_data, h_type=0):
             else:
                 state.append("IC")
        
-
+        # Fill dictionary with results
         result_df[index] = {"Norm" : T2_list, "Limit" : lim_list, "Num_OOC": count, "state": state, "h": h}
-            
         index += 1
-           
-            
-            
+
     return result_df
 
 

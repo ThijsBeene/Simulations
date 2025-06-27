@@ -11,7 +11,7 @@ import pandas as pd
 import SSMEWMA
 import Q_Chart
 import Generate_SPC_MEZCAL_Data_V1
-import Multivariate_Change_Point_Approach
+import HC_Chart
 import numpy as np
 import time
 import matplotlib.pyplot as plt
@@ -29,15 +29,10 @@ def get_Q_results(full_data, filepath, filename_Q, ARL_list_Q):
 
     # Add special cause variation
     full_data.T[res][start_OOC:] += Shift_Size*np.std(full_data.copy().T[res][:start_OOC])
-   
-    
+
     # Apply Q chart
     result_Q_chart = Q_Chart.Calculate_Q_Chart_UCL_LCL(full_data, 0.0005378341924398626)
-
     count = 0
-
-
-  
     # Count number of observations before OOC
     for jj in range(start_OOC,run_length,1):
         if result_Q_chart[res]["States"][jj] == "OOC" and count == 0:
@@ -82,10 +77,6 @@ def get_SSEWMA_results(cluster_data, full_data, filepath, filename_SSEWMA, ARL_l
            
     # Apply SSMEWMA
     result_SSEWMA = SSMEWMA.Calculate_SSEWMA_Norm_Lim(cluster_data, 12.576804)
-    
-    
-    
-    
     count_SSEWMA = 0
    
     
@@ -186,18 +177,13 @@ def get_combined_results(count_combi, full_data, filepath, filename_Combi_Q, ARL
     return result_SSEWMA, result_Q_chart, count_combi
 
 def get_CP_results(full_data, filepath, filename_CP, ARL_list_CP):
-
-    process_readings = len(full_data)
-    
-    
     # Add special cause variation
     full_observation_vector = full_data.T[res][:start_OOC]
     full_data.T[res][start_OOC:] += Shift_Size*np.std(full_observation_vector)
    
    
-    # Apply MCPD
-    result_CP = Multivariate_Change_Point_Approach.Calculate_Multivariate_Change_Point(full_data)
-
+    # Apply HC
+    result_CP = HC_Chart.Calculate_Multivariate_Change_Point(full_data)
     count_CP = 0
     
     
@@ -236,7 +222,7 @@ if __name__ == "__main__":
     # Define global parameters
     run_length = 30
     start_OOC = 20
-    runs = 200
+    runs = 20
     cluster_size = 2
     DBSCAN_threshold = 0.8
     
@@ -332,24 +318,16 @@ if __name__ == "__main__":
                     break
 
                 current_data = full_data.copy().iloc[:,:current_run_length+1].T
-            
-                
+
                 # Recluster with DBSCAN based on current data set
                 clustered_data_DBSCAN, cluster_data_noise, cluster_size_counts_dict, T_list = find_groups(current_data, data_real, T_list, cluster_matrix)
-                
-                
-                # Determine the SSEWMA and Q results based on the reclustered data
+
+                # Determine the SSEWMA results based on the reclustered data
                 results_SSEWMA, result_Q_chart, count_combi = get_combined_results(count_combi, current_data.T, filepath, filename_Combi_Q, ARL_list_Combi, clustered_data_DBSCAN, cluster_data_noise, filename_Combi_SSEWMA)
                
-        
-                
-  
             # ARL_OOC
             ARL_list_Combi.append(count_combi)
-            # ARL_list_CP.append(0)
-            # Store csv with run results for combined chart
-            # write_to_csv(result_SSEWMA.T, filepath, filename_Combi_SSEWMA)
-            # write_to_csv(result_Q_chart.T, filepath, filename_Combi_Q)
+
           
             
         POD5 = len([x for x in ARL_list_Combi if 0 < x <= 5])

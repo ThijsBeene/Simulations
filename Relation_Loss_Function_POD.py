@@ -2,17 +2,8 @@ import numpy as np
 from numpy.linalg import inv
 import matplotlib.pyplot as plt
 from scipy.stats import norm, t
-from numpy.linalg import inv
-from numpy.random import multivariate_normal
 from scipy.linalg import qr, solve_triangular
-from scipy.stats import t, norm
-import numpy as np
-from scipy.stats import multivariate_t
-import numpy as np
-from scipy.special import multigammaln
-from scipy.stats import invwishart
-from numpy.linalg import det
-
+from numpy.linalg import slogdet
 
 
 
@@ -126,10 +117,8 @@ def calc_T2_and_limits(M, Lambda, h):
 h = [8.458, 10.574, 12.484, 14.274, 15.934, 17.581, 19.165, 20.732, 22.302, 24, 26, 28, 30, 31,32,33,34,35,36,37,38,39,40]
 
 
-import numpy as np
-from numpy.linalg import slogdet
 
-def calculate_evidence(X, N0=1):
+def calculate_evidence(X):
     """
     Approximate the log marginal likelihood (model evidence) for a multivariate Gaussian
     using a MAP covariance estimator with shrinkage toward the identity matrix.
@@ -145,7 +134,6 @@ def calculate_evidence(X, N0=1):
 
     # Sample covariance matrix
     S = np.cov(X[:-1, :].T)
-
 
     # Use slogdet for numerical stability
     sign, logdet = slogdet(S)

@@ -84,7 +84,7 @@ def score_found_grouping(labels, data):
 
 
 
-def calculate_evidence(X, N0=0):
+def calculate_evidence(X):
     """
     Approximate the log marginal likelihood (model evidence) for a multivariate Gaussian
     using a MAP covariance estimator with shrinkage toward the identity matrix.
