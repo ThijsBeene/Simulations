@@ -10,14 +10,11 @@ warnings.filterwarnings('ignore')
 import pandas as pd
 import SSMEWMA
 import Q_Chart
-import Generate_SPC_MEZCAL_Data_V1
+import Generate_SPC_Data_V1
 import HC_Chart
 import numpy as np
 import time
-from Generate_SPC_MEZCAL_Data_V1 import Load_Data
-from Generate_SPC_MEZCAL_Data_V1 import generate_multivariate_data
-from Generate_SPC_MEZCAL_Data_V1 import apply_fixed_clustering
-from Generate_SPC_MEZCAL_Data_V1 import find_groups
+from Generate_SPC_Data_V1 import Load_Data, generate_multivariate_data, apply_fixed_clustering, find_groups
 import scipy.optimize as opt
 
 def write_to_csv(data, filepath, filename):
@@ -112,7 +109,7 @@ def simulate_Q(alpha):
         filename_Combi_Q = f"run_Combined_{run}_IC_Q.csv"
 
         # Generate random process reading
-        full_data = Generate_SPC_MEZCAL_Data_V1.generate_multivariate_data(data_real, run_length)
+        full_data = Generate_SPC_Data_V1.generate_multivariate_data(data_real, run_length)
 
         result_Q_chart = get_Q_results(full_data.copy(), filepath, filename_Q, ARL_list_Q, alpha)
 

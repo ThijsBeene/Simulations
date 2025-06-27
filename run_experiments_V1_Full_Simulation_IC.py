@@ -10,16 +10,13 @@ warnings.filterwarnings('ignore')
 import pandas as pd
 import SSMEWMA
 import Q_Chart
-import Generate_SPC_MEZCAL_Data_V1
+import Generate_SPC_Data_V1
 import HC_Chart
 import numpy as np
 import time
 import matplotlib.pyplot as plt
 import random
-from Generate_SPC_MEZCAL_Data_V1 import Load_Data
-from Generate_SPC_MEZCAL_Data_V1 import generate_multivariate_data
-from Generate_SPC_MEZCAL_Data_V1 import apply_fixed_clustering
-from Generate_SPC_MEZCAL_Data_V1 import find_groups
+from Generate_SPC_Data_V1 import Load_Data, generate_multivariate_data, apply_fixed_clustering, find_groups
 import math
 import scienceplots
 from matplotlib.patches import Rectangle
@@ -168,7 +165,7 @@ if __name__ == "__main__":
      
 
         # Generate a random process reading for OOC
-        full_data = Generate_SPC_MEZCAL_Data_V1.generate_multivariate_data(data_real, run_length).T
+        full_data = Generate_SPC_Data_V1.generate_multivariate_data(data_real, run_length).T
         cluster_data_SSEWMA = apply_fixed_clustering(full_data, sim, data_real)
       
         

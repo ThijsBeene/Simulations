@@ -4,17 +4,7 @@ import time
 import numpy as np
 import pandas as pd
 from numpy.random import multivariate_normal
-import matplotlib.pyplot as plt
-import math
-import scienceplots
-import numpy as np
-import pandas as pd
-import scipy.optimize as opt
-from scipy.linalg import qr, solve_triangular
-from scipy.stats import norm, t
-from numpy.linalg import inv
-from functools import partial
-from numpy.random import multivariate_normal
+
 
 def Load_Data(L):
     """Load and process MEZCAL data."""
@@ -132,7 +122,7 @@ def Calculate_Change_Point(data, h_n_p):
     lim_list = [0,0,0]
 
     # Limit found numerically
-    lim_list.extend(1.3 + 0.59*np.log(np.arange(1,len(data.T)-2, 1)))
+    lim_list.extend(2.3 + 0.59*np.log(np.arange(1,len(data.T)-2, 1)))
     
 
     for n in range(1, len(data.columns)+1): # Start at 4 to ensure valid k ranges

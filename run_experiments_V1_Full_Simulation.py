@@ -10,13 +10,13 @@ warnings.filterwarnings('ignore')
 import pandas as pd
 import SSMEWMA
 import Q_Chart
-import Generate_SPC_MEZCAL_Data_V1
+import Generate_SPC_Data_V1
 import HC_Chart
 import numpy as np
 import time
 import matplotlib.pyplot as plt
 import random
-from Generate_SPC_MEZCAL_Data_V1 import Load_Data, generate_multivariate_data, apply_fixed_clustering, find_groups
+from Generate_SPC_Data_V1 import Load_Data, generate_multivariate_data, apply_fixed_clustering, find_groups
 import math
 import scienceplots
 
@@ -294,7 +294,7 @@ if __name__ == "__main__":
             
          
 
-            full_data = Generate_SPC_MEZCAL_Data_V1.generate_multivariate_data(data_real, run_length).T
+            full_data = Generate_SPC_Data_V1.generate_multivariate_data(data_real, run_length).T
 
             # Generate a random process reading to be OOC
             val = random.randint(1, len(full_data) - 1)
@@ -477,7 +477,7 @@ write_to_csv(results_overal_df, filepath, filename_results)
 
 plt.style.use('science')
 
-shift_size = np.arange(1, 6, 1)
+shift_size = np.arange(0, 6, 1)
 
 fig, axs = plt.subplots(3, 1, figsize=(7, 12), sharex=True)
 
